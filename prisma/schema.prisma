@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Cluster0 {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  email   String   @unique
+  name    String
+  password String
+}
+
+model Aluno {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  nome            String
+  cpf             String     // CPF do aluno (11 dígitos)
+  dataNascimento  DateTime   // Data de nascimento
+  sexo            String     // "M" ou "F" (ou texto, se quiser)
+  responsaveis    String[]
+  alergias        String[]
+  contatos        Json       // pode ser array de strings ou objeto de contatos
+  enderecos       Endereco[] // <- RELAÇÃO
+
+  // NOVOS CAMPOS
+  status          String     // ATIVO | INATIVO
+  turma           String     // BERCARIO | MATERNAL | PRE_ESCOLAR | EXTRA_CLASSE
+  dataMatricula   DateTime
+  numeroMatricula String     @unique
+  observacoes     String?    // opcional
+  fotoPath        String?    // caminho/URL da foto
+  documentos      String[]   // caminhos/URLs dos docs
+
+  criadoEm        DateTime   @default(now())
+}
+
+
+model Endereco {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  cep      String
+  rua      String
+  bairro   String
+  numero   String
+  cidade   String
+  estado   String
+  alunoId  String   @db.ObjectId
+  aluno    Aluno    @relation(fields: [alunoId], references: [id])
+}
+
+model Conta {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  tipo           String
+  descricao      String
+  valor          Float
+  dataVencimento DateTime
+  recorrencia    String
+  status         String
+  categoria      String?
+  observacoes    String?
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @updatedAt
+}

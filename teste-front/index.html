@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro - RAJJ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Seção da imagem -->
+    <div class="image-section">
+      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração de cadastro">
+    </div>
+
+    <!-- Seção do formulário -->
+    <div class="form-section">
+      <form id="cadastro-form">
+        <div class="form-header">
+          <div class="title">
+            <h1>CADASTRO</h1>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box">
+            <label for="nome">Nome Completo</label>
+            <input id="nome" type="text" name="nome" placeholder="Digite seu nome completo" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box">
+            <label for="email">E-mail</label>
+            <input id="email" type="email" name="email" placeholder="Digite seu e-mail" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box">
+            <label for="senha">Senha</label>
+            <input id="senha" type="password" name="password" placeholder="Digite sua senha" required>
+          </div>
+        </div>
+
+        <div class="continue-button">
+          <button type="submit">Cadastrar</button>
+        </div>
+      </form>
+
+      <div class="login-link">
+        <p>Já tem conta? <a href="login.html">Faça login</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('cadastro-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const nome = document.getElementById('nome').value;
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('senha').value;
+
+      try {
+        const response = await fetch('http://localhost:3000/cadastro', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: nome,
+            email: email,
+            password: senha
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert('Cadastro realizado com sucesso!');
+          document.getElementById('cadastro-form').reset();
+          console.log(data);
+        } else {
+          alert(data.message || 'Erro no cadastro');
+        }
+
+      } catch (error) {
+        alert('Erro ao conectar com o servidor');
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

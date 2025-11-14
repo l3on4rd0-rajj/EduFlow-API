@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro de Aluno - RAJJ</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .form-step { display: none; }
+    .form-step.active { display: block; }
+    .step-navigation { display: flex; justify-content: space-between; margin-top: 20px; }
+    input.capitalize { text-transform: capitalize; }
+
+    /* Abas */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab-button {
+      padding: 8px 16px;
+      border: 1px solid #9c27b0;           /* fix: border não aceita gradient */
+      background: linear-gradient(90deg, #6a1b9a, #9c27b0);
+      cursor: pointer; border-radius: 4px; color: #fff;
+    }
+    .tab-button.active {
+      background: linear-gradient(90deg, #6a1b9a, #9c27b0);
+      color: #fff; border-color: #9c27b0;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Tabela de alunos */
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: linear-gradient(90deg, #6a1b9a, #9c27b0); color:#fff; }
+    td img { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; }
+    .documento-field { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+    /* Botões */
+    .continue-button button, #btn-add-doc, .documento-field button, .step-navigation button, .tabs .tab-button {
+      padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer;
+      background: linear-gradient(90deg, #6a1b9a, #9c27b0); color: #fff; font-size: 14px;
+    }
+    .continue-button button:hover, #btn-add-doc:hover, .documento-field button:hover,
+    .step-navigation button:hover, .tabs .tab-button:hover { filter: brightness(1.05); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="image-section">
+      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração de cadastro">
+    </div>
+
+    <div class="form-section">
+      <!-- Abas -->
+      <div class="tabs">
+        <button type="button" class="tab-button active" data-tab="cadastro">Cadastro</button>
+        <button type="button" class="tab-button" data-tab="lista">Alunos</button>
+      </div>
+
+      <!-- Aba Cadastro -->
+      <div id="tab-cadastro" class="tab-content active">
+        <form id="cadastro-form" novalidate>
+          <div class="form-header"><h1>Cadastro de Aluno</h1></div>
+
+          <!-- Etapa 1 -->
+          <div class="form-step active" id="step-1">
+            <label for="nome">Nome Completo</label>
+            <input id="nome" type="text" name="nome" required class="capitalize" />
+
+            <label for="cpf">CPF</label>
+            <input id="cpf" type="text" name="cpf" maxlength="11" placeholder="Somente números" required />
+
+            <label for="dataNascimento">Data de Nascimento</label>
+            <input id="dataNascimento" type="date" name="dataNascimento" required />
+
+            <label for="sexo">Sexo</label>
+            <select id="sexo" name="sexo" required>
+              <option value="">Selecione</option>
+              <option value="M">Masculino</option>
+              <option value="F">Feminino</option>
+            </select>
+          </div>
+
+          <!-- Etapa 2 -->
+          <div class="form-step" id="step-2">
+            <label>Responsáveis</label>
+            <div id="responsaveis" class="tags-container"></div>
+            <button type="button" onclick="adicionarCampo('responsaveis')">+ Adicionar</button>
+          </div>
+
+          <!-- Etapa 3 -->
+          <div class="form-step" id="step-3">
+            <label>Alergias</label>
+            <div id="alergias" class="tags-container"></div>
+            <button type="button" onclick="adicionarCampo('alergias')">+ Adicionar</button>
+          </div>
+
+          <!-- Etapa 4 -->
+          <div class="form-step" id="step-4">
+            <label>Contatos</label>
+            <div id="contatos" class="tags-container"></div>
+            <button type="button" onclick="adicionarCampo('contatos')">+ Adicionar</button>
+          </div>
+
+          <!-- Etapa 5 -->
+          <div class="form-step" id="step-5">
+            <label>Endereço</label>
+            <div id="enderecos" class="endereco-container"></div>
+            <button type="button" onclick="adicionarEndereco()">+ Adicionar Endereço</button>
+          </div>
+
+          <!-- Etapa 6 -->
+          <div class="form-step" id="step-6">
+            <label for="status">Status do Aluno</label>
+            <select id="status" name="status">
+              <option value="ATIVO" selected>Ativo</option>
+              <option value="INATIVO">Inativo</option>
+            </select>
+
+            <label for="turma">Turma</label>
+            <select id="turma" name="turma" required>
+              <option value="">Selecione</option>
+              <option value="BERCARIO">Berçário</option>
+              <option value="MATERNAL">Maternal</option>
+              <option value="PRE_ESCOLAR">Pré-escolar</option>
+              <option value="EXTRA_CLASSE">Extra-classe</option>
+            </select>
+
+            <label for="dataMatricula">Data da Matrícula</label>
+            <input id="dataMatricula" type="date" name="dataMatricula" required>
+
+            <label for="observacoes">Observações (opcional)</label>
+            <textarea id="observacoes" name="observacoes" maxlength="500" rows="3" placeholder="Observações gerais sobre o aluno"></textarea>
+
+            <label for="foto">Foto do Aluno</label>
+            <input id="foto" type="file" name="foto" accept="image/*">
+
+            <label>Documentos</label>
+            <div id="documentos-container"></div>
+            <button type="button" id="btn-add-doc" onclick="adicionarDocumento()">+ Adicionar documento</button>
+          </div>
+
+          <div class="step-navigation">
+            <button type="button" id="btn-voltar" onclick="voltarPasso()">Voltar</button>
+            <button type="button" id="btn-proximo" onclick="proximoPasso()">Próximo</button>
+          </div>
+
+          <div class="continue-button" id="finalizar-btn" style="display:none;">
+            <button type="submit">Cadastrar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Aba Lista -->
+      <div id="tab-lista" class="tab-content">
+        <h2>Alunos Cadastrados</h2>
+        <table id="tabela-alunos">
+          <thead>
+            <tr>
+              <th>Matrícula</th>
+              <th>Nome</th>
+              <th>Turma</th>
+              <th>Status</th>
+              <th>Data Matrícula</th>
+              <th>Foto</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let passoAtual = 1;
+    const totalPassos = 6;
+
+    function mostrarPasso(n) {
+      document.querySelectorAll('.form-step').forEach((el, i) => {
+        el.classList.toggle('active', i === n - 1);
+      });
+      document.getElementById('btn-voltar').style.display = n === 1 ? 'none' : 'inline-block';
+      document.getElementById('btn-proximo').style.display = n === totalPassos ? 'none' : 'inline-block';
+      document.getElementById('finalizar-btn').style.display = n === totalPassos ? 'block' : 'none';
+    }
+    function proximoPasso() { if (passoAtual < totalPassos) mostrarPasso(++passoAtual); }
+    function voltarPasso() { if (passoAtual > 1) mostrarPasso(--passoAtual); }
+
+    function capitalizarFrase(texto) {
+      return texto.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+    }
+    function aplicarCapitalizacaoDinamica(input) {
+      input.addEventListener('input', () => {
+        const palavras = input.value.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1));
+        input.value = palavras.join(' ');
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.getModifierState && e.getModifierState('CapsLock')) {
+          alert('Evite usar Caps Lock');
+        }
+      });
+    }
+
+    function adicionarCampo(containerId) {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = 'tag-field';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.name = containerId + '[]';
+      input.required = true;
+      input.classList.add('capitalize');
+      aplicarCapitalizacaoDinamica(input);
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Remover';
+      removeBtn.onclick = () => div.remove();
+      div.appendChild(input);
+      div.appendChild(removeBtn);
+      container.appendChild(div);
+    }
+
+    function adicionarEndereco() {
+      const container = document.getElementById('enderecos');
+      const div = document.createElement('div');
+      div.className = 'endereco-field';
+      div.innerHTML = `
+        <input type="text" name="enderecos[][cep]" placeholder="CEP" required onblur="buscarCep(this)">
+        <input type="text" name="enderecos[][rua]" class="capitalize" placeholder="Rua" required>
+        <input type="text" name="enderecos[][bairro]" class="capitalize" placeholder="Bairro" required>
+        <input type="text" name="enderecos[][numero]" placeholder="Número" required>
+        <input type="text" name="enderecos[][cidade]" class="capitalize" placeholder="Cidade" required>
+        <input type="text" name="enderecos[][estado]" placeholder="UF" required maxlength="2">
+        <button type="button" onclick="this.parentElement.remove()">Remover</button>
+      `;
+      container.appendChild(div);
+      div.querySelectorAll('.capitalize').forEach(input => aplicarCapitalizacaoDinamica(input));
+    }
+
+    function adicionarDocumento() {
+      const container = document.getElementById('documentos-container');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'documento-field';
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.name = 'documentos';
+      input.className = 'documento-input';
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Remover';
+      removeBtn.onclick = () => wrapper.remove();
+      wrapper.appendChild(input);
+      wrapper.appendChild(removeBtn);
+      container.appendChild(wrapper);
+    }
+
+    async function buscarCep(input) {
+      const cep = input.value.replace(/\D/g, '');
+      if (cep.length !== 8) return;
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await res.json();
+        if (data.erro) return alert('CEP não encontrado.');
+        const container = input.closest('.endereco-field');
+        container.querySelector('input[name$="[rua]"]').value = data.logradouro || '';
+        container.querySelector('input[name$="[bairro]"]').value = data.bairro || '';
+        container.querySelector('input[name$="[cidade]"]').value = data.localidade || '';
+        container.querySelector('input[name$="[estado]"]').value = data.uf || '';
+      } catch (err) {
+        console.error(err); alert('Erro ao buscar CEP.');
+      }
+    }
+
+    // helper pra montar URL da foto corretamente
+    function buildFileUrl(p) {
+      if (!p) return null;
+      if (/^https?:\/\//i.test(p)) return p;
+      return `http://localhost:3000${p.startsWith('/') ? p : '/' + p}`;
+    }
+
+    // ====== SUBMIT DO CADASTRO ======
+    document.getElementById('cadastro-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const nome = capitalizarFrase(document.getElementById('nome').value.trim());
+      let cpf = document.getElementById('cpf').value.replace(/\D/g, '');
+      if (cpf.length !== 11) return alert('CPF deve ter 11 dígitos.');
+
+      const dataNascimento = document.getElementById('dataNascimento').value;
+      if (!dataNascimento) return alert('Informe a data de nascimento.');
+
+      const sexo = document.getElementById('sexo').value;
+      if (!sexo) return alert('Selecione o sexo.');
+
+      const responsaveis = Array.from(document.querySelectorAll('#responsaveis input')).map(i => capitalizarFrase(i.value.trim()));
+      const alergias     = Array.from(document.querySelectorAll('#alergias input')).map(i => i.value.trim().toLowerCase());
+      const contatos     = Array.from(document.querySelectorAll('#contatos input')).map(i => i.value.trim());
+      const enderecos    = Array.from(document.querySelectorAll('.endereco-field')).map(field => ({
+        cep: field.querySelector('input[name$="[cep]"]').value.trim(),
+        rua: capitalizarFrase(field.querySelector('input[name$="[rua]"]').value.trim()),
+        bairro: capitalizarFrase(field.querySelector('input[name$="[bairro]"]').value.trim()),
+        numero: field.querySelector('input[name$="[numero]"]').value.trim(),
+        cidade: capitalizarFrase(field.querySelector('input[name$="[cidade]"]').value.trim()),
+        estado: field.querySelector('input[name$="[estado]"]').value.trim().toUpperCase()
+      }));
+
+      const status        = document.getElementById('status').value || 'ATIVO';
+      const turma         = document.getElementById('turma').value;
+      const dataMatricula = document.getElementById('dataMatricula').value;
+      const observacoes   = document.getElementById('observacoes').value.trim();
+      const fotoFile      = document.getElementById('foto').files[0];
+
+      const docInputs = document.querySelectorAll('.documento-input');
+      const documentosFiles = [];
+      docInputs.forEach(input => Array.from(input.files).forEach(f => documentosFiles.push(f)));
+
+      if (!turma) return alert('Selecione a turma.');
+      if (!dataMatricula) return alert('Informe a data da matrícula.');
+
+      const token = localStorage.getItem('token');
+      if (!token) return alert('Você precisa estar logado para cadastrar um aluno.');
+
+      const formData = new FormData();
+      formData.append('nome', nome);
+      formData.append('cpf', cpf);
+      formData.append('dataNascimento', dataNascimento);
+      formData.append('sexo', sexo);
+      formData.append('status', status);
+      formData.append('turma', turma);
+      formData.append('dataMatricula', dataMatricula);
+      if (observacoes) formData.append('observacoes', observacoes);
+      formData.append('responsaveis', JSON.stringify(responsaveis));
+      formData.append('alergias', JSON.stringify(alergias));
+      formData.append('contatos', JSON.stringify(contatos));
+      formData.append('enderecos', JSON.stringify(enderecos));
+      if (fotoFile) formData.append('foto', fotoFile);
+      documentosFiles.forEach(f => formData.append('documentos', f));
+
+      try {
+        const res = await fetch('http://localhost:3000/api/aluno', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }, // não setar Content-Type manualmente
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Aluno cadastrado com sucesso!');
+          document.getElementById('cadastro-form').reset();
+          document.getElementById('documentos-container').innerHTML = '';
+          adicionarDocumento();
+          passoAtual = 1; mostrarPasso(passoAtual);
+          carregarAlunos();
+        } else {
+          alert(data.error || 'Erro ao cadastrar aluno.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao conectar com o servidor.');
+      }
+    });
+
+    // ====== CARREGAR ALUNOS (lista) ======
+    async function carregarAlunos() {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch('http://localhost:3000/api/alunos', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (!res.ok) {
+          console.error('Erro ao buscar alunos:', res.status);
+          return;
+        }
+        const alunos = await res.json();
+        const tbody = document.querySelector('#tabela-alunos tbody');
+        tbody.innerHTML = '';
+        alunos.forEach(a => {
+          const tr = document.createElement('tr');
+          const dataMatricula = a.dataMatricula ? new Date(a.dataMatricula).toLocaleDateString('pt-BR') : '-';
+          const fotoUrl = buildFileUrl(a.fotoPath);
+          const fotoHtml = fotoUrl ? `<img src="${fotoUrl}" alt="Foto de ${a.nome}">` : '-';
+          tr.innerHTML = `
+            <td>${a.numeroMatricula || '-'}</td>
+            <td>${a.nome}</td>
+            <td>${a.turma || '-'}</td>
+            <td>${a.status || 'ATIVO'}</td>
+            <td>${dataMatricula}</td>
+            <td>${fotoHtml}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Erro ao carregar alunos:', err);
+      }
+    }
+
+    // ====== ABAS (Cadastro / Lista) ======
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = {
+      cadastro: document.getElementById('tab-cadastro'),
+      lista: document.getElementById('tab-lista'),
+    };
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        tabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        Object.entries(tabContents).forEach(([key, el]) => {
+          el.classList.toggle('active', key === tab);
+        });
+        if (tab === 'lista') carregarAlunos();
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      ['responsaveis', 'alergias', 'contatos'].forEach(id => adicionarCampo(id));
+      adicionarEndereco();
+      adicionarDocumento(); // cria um campo de documento inicial
+      mostrarPasso(passoAtual);
+      aplicarCapitalizacaoDinamica(document.getElementById('nome'));
+    });
+  </script>
+</body>
+</html>

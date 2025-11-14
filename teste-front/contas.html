@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financeiro - Contas a Pagar e Receber - RAJJ</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .form-section h1 {
+      text-align: center;
+      color: #6a1b9a;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .finance-layout {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr;
+      gap: 20px;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .filters select,
+    .filters input[type="month"],
+    .filters input[type="text"] {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.85rem;
+    }
+
+    .filters input[type="text"] {
+      min-width: 200px;
+    }
+
+    .btn-primary {
+      background-color: #6a1b9a;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: filter 0.2s, transform 0.1s;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary span.emoji {
+      font-size: 1rem;
+    }
+
+    .contas-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .conta-card {
+      border-radius: 8px;
+      padding: 10px 12px;
+      background-color: #fafafa;
+      border: 2px solid #e0e0e0;
+      display: grid;
+      grid-template-columns: 1.6fr 1.2fr auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.85rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .conta-main h3 {
+      margin: 0 0 4px;
+      color: #6a1b9a;
+      font-size: 1rem;
+    }
+
+    .conta-main small {
+      display: block;
+      color: #555;
+    }
+
+    .conta-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .tag {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tag-tipo-pagar {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .tag-tipo-receber {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .tag-status-aberta {
+      background-color: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .tag-status-vencida {
+      background-color: #ffebee;
+      color: #b71c1c;
+    }
+
+    .tag-status-vencendo {
+      background-color: #fffde7;
+      color: #f9a825;
+    }
+
+    .tag-status-paga {
+      background-color: #e8f5e9;
+      color: #1b5e20;
+    }
+
+    .tag-status-renegociacao {
+      background-color: #ede7f6;
+      color: #4527a0;
+    }
+
+    .tag-recorrente {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .conta-valor {
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    .conta-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+    }
+
+    .btn-mini {
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: filter 0.2s, transform 0.1s;
+    }
+
+    .btn-mini:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    .btn-mini span.emoji {
+      font-size: 0.9rem;
+    }
+
+    .btn-editar {
+      background-color: #ffb300;
+      color: #000;
+    }
+
+    .btn-pagar {
+      background-color: #2e7d32;
+      color: #fff;
+    }
+
+    .btn-renegociar {
+      background-color: #5e35b1;
+      color: #fff;
+    }
+
+    .btn-excluir {
+      background-color: #e53935;
+      color: #fff;
+    }
+
+    /* Lado direito: calendário + alertas + formulário */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .card-box {
+      border-radius: 10px;
+      border: 2px solid #e0e0e0;
+      padding: 10px 12px;
+      background-color: #fafafa;
+    }
+
+    .card-box h2 {
+      font-size: 0.95rem;
+      margin: 0 0 8px;
+      color: #6a1b9a;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      font-size: 0.7rem;
+      text-align: center;
+    }
+
+    .calendar-day-name {
+      font-weight: 600;
+      color: #555;
+    }
+
+    .calendar-day {
+      color: #555;
+      font-weight: 500;
+      position: relative;
+      min-height: 24px;
+      padding: 4px 0;
+      border-radius: 6px;
+    }
+
+    .calendar-day.today {
+      border: 1px solid #6a1b9a;
+    }
+
+    .calendar-day.has-contas::after {
+      content: "";
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #6a1b9a;
+    }
+
+    .calendar-day.out-month {
+      color: #ccc;
+      opacity: 1;
+      cursor: default;
+    }
+
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      font-size: 0.8rem;
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+
+    .alert-vencida {
+      background-color: #ffebee;
+      color: #b71c1c;
+    }
+
+    .alert-vencendo {
+      background-color: #fffde7;
+      color: #f9a825;
+    }
+
+    /* Formulário rápido de conta */
+    .quick-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 0.8rem;
+    }
+
+    .quick-form-full {
+      grid-column: 1 / -1;
+    }
+
+    .quick-form label {
+      display: block;
+      margin-bottom: 2px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .quick-form input,
+    .quick-form select,
+    .quick-form textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.8rem;
+      outline: none;
+      resize: vertical;
+    }
+
+    .quick-form textarea {
+      min-height: 40px;
+    }
+
+    .quick-form input:focus,
+    .quick-form select:focus,
+    .quick-form textarea:focus {
+      border-color: #6a1b9a;
+      box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.15);
+    }
+
+    .quick-form-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-secondary {
+      border: 1px solid #bdbdbd;
+      background-color: #fff;
+      color: #555;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .btn-secondary:hover {
+      background-color: #f5f5f5;
+      transform: translateY(-1px);
+    }
+
+    .empty-text {
+      font-size: 0.8rem;
+      color: #777;
+    }
+
+    @media (max-width: 900px) {
+      .finance-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="image-section">
+      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração RAJJ" />
+    </div>
+
+    <div class="form-section">
+      <h1>Financeiro</h1>
+      <p class="subtitle">Controle suas contas a pagar e receber, recorrências e alertas de vencimento.</p>
+
+      <div class="top-actions">
+        <div class="filters">
+          <span>Tipo:</span>
+          <select id="filtroTipo">
+            <option value="TODOS">Todos</option>
+            <option value="PAGAR">A pagar</option>
+            <option value="RECEBER">A receber</option>
+          </select>
+
+          <span>Status:</span>
+          <select id="filtroStatus">
+            <option value="TODOS">Todos</option>
+            <option value="ABERTA">Abertas</option>
+            <option value="VENCIDA">Vencidas</option>
+            <option value="VENCENDO">A vencer (7 dias)</option>
+            <option value="PAGA">Pagas</option>
+            <option value="REN">Renegociação</option>
+          </select>
+
+          <span>Mês:</span>
+          <input type="month" id="filtroMes" />
+
+          <span>Buscar:</span>
+          <input
+            type="text"
+            id="filtroBusca"
+            placeholder="Descrição, categoria, observações..."
+          />
+        </div>
+
+        <button class="btn-primary" onclick="novaConta()">
+          <span class="emoji">➕</span>
+          <span>Nova conta</span>
+        </button>
+      </div>
+
+      <div class="finance-layout">
+        <!-- Lado esquerdo: lista de contas -->
+        <div>
+          <p id="resumoContas" class="list-summary"></p>
+          <div id="listaContas" class="contas-list"></div>
+        </div>
+
+        <!-- Lado direito: calendário, alertas e form -->
+        <div class="side-panel">
+          <div class="card-box">
+            <div class="calendar-header">
+              <h2>Calendário</h2>
+              <span id="calendarMonthLabel" style="font-size:0.8rem;color:#555;"></span>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+          </div>
+
+          <div class="card-box">
+            <h2>Alertas (vencidas e a vencer)</h2>
+            <div id="alertList" class="alert-list"></div>
+          </div>
+
+          <div class="card-box">
+            <h2 id="formTitulo">Nova conta</h2>
+            <form id="contaForm">
+              <input type="hidden" id="contaId" />
+              <div class="quick-form">
+                <div>
+                  <label for="tipo">Tipo</label>
+                  <select id="tipo" required>
+                    <option value="PAGAR">Conta a pagar</option>
+                    <option value="RECEBER">Conta a receber</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="valor">Valor</label>
+                  <input type="number" step="0.01" id="valor" required />
+                </div>
+
+                <div class="quick-form-full">
+                  <label for="descricao">Descrição</label>
+                  <input type="text" id="descricao" required />
+                </div>
+
+                <div>
+                  <label for="dataVencimento">Vencimento</label>
+                  <input type="date" id="dataVencimento" required />
+                </div>
+
+                <div>
+                  <label for="recorrencia">Recorrência</label>
+                  <select id="recorrencia">
+                    <option value="NENHUMA">Nenhuma</option>
+                    <option value="MENSAL">Mensal</option>
+                    <option value="SEMANAL">Semanal</option>
+                    <option value="ANUAL">Anual</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="status">Status</label>
+                  <select id="status">
+                    <option value="ABERTA">Aberta</option>
+                    <option value="PAGA">Paga</option>
+                    <option value="REN">Renegociação</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="categoria">Categoria</label>
+                  <input type="text" id="categoria" placeholder="Ex.: Escola, Transporte..." />
+                </div>
+
+                <div class="quick-form-full">
+                  <label for="observacoes">Observações</label>
+                  <textarea id="observacoes" placeholder="Detalhes, forma de pagamento, etc."></textarea>
+                </div>
+
+                <div class="quick-form-actions">
+                  <button type="button" class="btn-secondary" onclick="limparForm()">Cancelar</button>
+                  <button type="submit" class="btn-primary">
+                    <span class="emoji">💾</span>
+                    <span>Salvar</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let contas = [];
+    let mesAtual = new Date();
+    const DIAS_ALERTA = 7;
+
+    function getTokenOrRedirect() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Você precisa estar logado.');
+        window.location.href = 'login.html';
+        return null;
+      }
+      return token;
+    }
+
+    // ============ CARREGAR DO SERVIDOR ============
+
+    async function carregarContasDoServidor() {
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const resp = await fetch('http://localhost:3000/api/contas', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!resp.ok) throw new Error('Erro ao buscar contas');
+
+        contas = await resp.json();
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao carregar contas do servidor.');
+        contas = [];
+      }
+    }
+
+    // ============ HELPERS ============
+
+    function formatarDataBR(dateStr) {
+      if (!dateStr) return '—';
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) return '—';
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const ano = d.getFullYear();
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    function formatarValor(v) {
+      if (v == null) return 'R$ 0,00';
+      return Number(v).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    }
+
+    function calcularStatusDinamico(conta) {
+      if (conta.status === 'PAGA') return 'PAGA';
+      if (conta.status === 'REN') return 'REN';
+
+      const hoje = new Date();
+      const venc = new Date(conta.dataVencimento);
+      const diffDias = Math.floor((venc - hoje) / (1000 * 60 * 60 * 24));
+
+      if (diffDias < 0) return 'VENCIDA';
+      if (diffDias <= DIAS_ALERTA) return 'VENCENDO';
+      return 'ABERTA';
+    }
+
+    function classStatusTag(status) {
+      switch (status) {
+        case 'VENCIDA': return 'tag-status-vencida';
+        case 'VENCENDO': return 'tag-status-vencendo';
+        case 'PAGA': return 'tag-status-paga';
+        case 'REN': return 'tag-status-renegociacao';
+        default: return 'tag-status-aberta';
+      }
+    }
+
+    function textoStatus(status) {
+      switch (status) {
+        case 'VENCIDA': return 'Vencida';
+        case 'VENCENDO': return 'A vencer';
+        case 'PAGA': return 'Paga';
+        case 'REN': return 'Renegociação';
+        default: return 'Aberta';
+      }
+    }
+
+    // ============ FILTROS & LISTA ============
+
+    function aplicarFiltros() {
+      const tipo = document.getElementById('filtroTipo').value;
+      const statusFiltro = document.getElementById('filtroStatus').value;
+      const mesInput = document.getElementById('filtroMes').value;
+      const termoBusca = (document.getElementById('filtroBusca')?.value || '')
+        .trim()
+        .toLowerCase();
+
+      let lista = [...contas];
+
+      // Filtro por tipo
+      if (tipo !== 'TODOS') {
+        lista = lista.filter(c => c.tipo === tipo);
+      }
+
+      // Filtro por status dinâmico
+      lista = lista.filter(c => {
+        const statusDin = calcularStatusDinamico(c);
+        if (statusFiltro === 'TODOS') return true;
+        if (statusFiltro === 'VENCIDA') return statusDin === 'VENCIDA';
+        if (statusFiltro === 'VENCENDO') return statusDin === 'VENCENDO';
+        if (statusFiltro === 'ABERTA') return statusDin === 'ABERTA';
+        if (statusFiltro === 'PAGA') return statusDin === 'PAGA';
+        if (statusFiltro === 'REN') return statusDin === 'REN';
+        return true;
+      });
+
+      // Filtro por mês
+      if (mesInput) {
+        const [ano, mes] = mesInput.split('-').map(Number);
+        lista = lista.filter(c => {
+          const d = new Date(c.dataVencimento);
+          return d.getFullYear() === ano && (d.getMonth() + 1) === mes;
+        });
+      }
+
+      // Filtro por texto (descrição, categoria, observações)
+      if (termoBusca) {
+        lista = lista.filter(c => {
+          const desc = (c.descricao || '').toLowerCase();
+          const cat = (c.categoria || '').toLowerCase();
+          const obs = (c.observacoes || '').toLowerCase();
+          return (
+            desc.includes(termoBusca) ||
+            cat.includes(termoBusca) ||
+            obs.includes(termoBusca)
+          );
+        });
+      }
+
+      return lista.sort(
+        (a, b) => new Date(a.dataVencimento) - new Date(b.dataVencimento)
+      );
+    }
+
+    function renderizarLista() {
+      const lista = aplicarFiltros();
+      const container = document.getElementById('listaContas');
+      const resumo = document.getElementById('resumoContas');
+
+      container.innerHTML = '';
+
+      if (lista.length === 0) {
+        resumo.textContent = 'Nenhuma conta encontrada com os filtros atuais.';
+        container.innerHTML = '<p class="empty-text">Nenhuma conta para exibir.</p>';
+        return;
+      }
+
+      const total = lista.reduce((acc, c) => acc + Number(c.valor || 0), 0);
+      resumo.textContent = `Exibindo ${lista.length} conta(s). Total: ${formatarValor(total)}.`;
+
+      lista.forEach(conta => {
+        const statusDin = calcularStatusDinamico(conta);
+
+        const card = document.createElement('div');
+        card.className = 'conta-card';
+
+        const main = document.createElement('div');
+        main.className = 'conta-main';
+        main.innerHTML = `
+          <h3>${conta.descricao}</h3>
+          <small><strong>Vencimento:</strong> ${formatarDataBR(conta.dataVencimento)}</small>
+          <small><strong>Categoria:</strong> ${conta.categoria || '—'}</small>
+          ${conta.observacoes ? `<small><strong>Obs.:</strong> ${conta.observacoes}</small>` : ''}
+        `;
+
+        const tags = document.createElement('div');
+        tags.className = 'conta-tags';
+        const tagTipo = document.createElement('span');
+        tagTipo.className = 'tag ' + (conta.tipo === 'PAGAR' ? 'tag-tipo-pagar' : 'tag-tipo-receber');
+        tagTipo.textContent = conta.tipo === 'PAGAR' ? 'A pagar' : 'A receber';
+
+        const tagStatus = document.createElement('span');
+        tagStatus.className = 'tag ' + classStatusTag(statusDin);
+        tagStatus.textContent = textoStatus(statusDin);
+
+        tags.appendChild(tagTipo);
+        tags.appendChild(tagStatus);
+
+        if (conta.recorrencia && conta.recorrencia !== 'NENHUMA') {
+          const tagRec = document.createElement('span');
+          tagRec.className = 'tag tag-recorrente';
+          tagRec.textContent = `Recorrência: ${conta.recorrencia.toLowerCase()}`;
+          tags.appendChild(tagRec);
+        }
+
+        const valorEl = document.createElement('div');
+        valorEl.className = 'conta-valor';
+        valorEl.textContent = formatarValor(conta.valor);
+
+        const actions = document.createElement('div');
+        actions.className = 'conta-actions';
+
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-mini btn-editar';
+        btnEditar.innerHTML = '<span class="emoji">✏️</span><span>Editar</span>';
+        btnEditar.onclick = () => editarConta(conta.id);
+
+        const btnPagar = document.createElement('button');
+        btnPagar.className = 'btn-mini btn-pagar';
+        btnPagar.innerHTML = '<span class="emoji">✅</span><span>Marcar paga</span>';
+        btnPagar.onclick = () => marcarPaga(conta.id);
+
+        const btnRen = document.createElement('button');
+        btnRen.className = 'btn-mini btn-renegociar';
+        btnRen.innerHTML = '<span class="emoji">🤝</span><span>Renegociar</span>';
+        btnRen.onclick = () => marcarRenegociacao(conta.id);
+
+        const btnExc = document.createElement('button');
+        btnExc.className = 'btn-mini btn-excluir';
+        btnExc.innerHTML = '<span class="emoji">🗑️</span><span>Excluir</span>';
+        btnExc.onclick = () => excluirConta(conta.id);
+
+        actions.appendChild(btnEditar);
+        actions.appendChild(btnPagar);
+        actions.appendChild(btnRen);
+        actions.appendChild(btnExc);
+
+        card.appendChild(main);
+        card.appendChild(tags);
+        card.appendChild(valorEl);
+        card.appendChild(actions);
+
+        container.appendChild(card);
+      });
+    }
+
+    // ============ CALENDÁRIO & ALERTAS ============
+
+    function renderizarCalendario() {
+      const grid = document.getElementById('calendarGrid');
+      const label = document.getElementById('calendarMonthLabel');
+
+      if (!grid || !label) return;
+
+      const ano = mesAtual.getFullYear();
+      const mesIndex = mesAtual.getMonth();
+
+      const nomesMeses = [
+        'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+        'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+      ];
+      label.textContent = `${nomesMeses[mesIndex]} / ${ano}`;
+
+      grid.innerHTML = '';
+
+      const diasSemana = ['D','S','T','Q','Q','S','S'];
+      diasSemana.forEach(diaNome => {
+        const el = document.createElement('div');
+        el.className = 'calendar-day-name';
+        el.textContent = diaNome;
+        grid.appendChild(el);
+      });
+
+      const primeiroDiaMes = new Date(ano, mesIndex, 1);
+      const diaSemanaPrimeiro = primeiroDiaMes.getDay();
+      const ultimoDiaMes = new Date(ano, mesIndex + 1, 0).getDate();
+
+      for (let i = 0; i < diaSemanaPrimeiro; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day out-month';
+        grid.appendChild(cell);
+      }
+
+      const hoje = new Date();
+
+      for (let dia = 1; dia <= ultimoDiaMes; dia++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day';
+        cell.textContent = dia;
+
+        const mesStr = String(mesIndex + 1).padStart(2, '0');
+        const diaStr = String(dia).padStart(2, '0');
+        const dataStr = `${ano}-${mesStr}-${diaStr}`;
+
+        const temConta = contas.some(c => {
+          if (!c || !c.dataVencimento) return false;
+          const dStr = String(c.dataVencimento).substring(0, 10);
+          return dStr === dataStr;
+        });
+
+        if (temConta) {
+          cell.classList.add('has-contas');
+        }
+
+        if (
+          hoje.getFullYear() === ano &&
+          hoje.getMonth() === mesIndex &&
+          hoje.getDate() === dia
+        ) {
+          cell.classList.add('today');
+        }
+
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderizarAlertas() {
+      const container = document.getElementById('alertList');
+      container.innerHTML = '';
+
+      const hoje = new Date();
+
+      const alertas = contas
+        .map(c => {
+          const venc = new Date(c.dataVencimento);
+          const diffDias = Math.floor((venc - hoje) / (1000 * 60 * 60 * 24));
+          const statusDin = calcularStatusDinamico(c);
+
+          if (statusDin === 'PAGA' || statusDin === 'REN') return null;
+
+          if (statusDin === 'VENCIDA') {
+            return {
+              tipo: 'VENCIDA',
+              msg: `${c.tipo === 'PAGAR' ? 'Pagar' : 'Receber'} ${formatarValor(c.valor)} - ${c.descricao} (vencida em ${formatarDataBR(c.dataVencimento)})`
+            };
+          }
+
+          if (statusDin === 'VENCENDO' && diffDias >= 0 && diffDias <= DIAS_ALERTA) {
+            return {
+              tipo: 'VENCENDO',
+              msg: `${c.tipo === 'PAGAR' ? 'Pagar' : 'Receber'} ${formatarValor(c.valor)} - ${c.descricao} (vence em ${formatarDataBR(c.dataVencimento)})`
+            };
+          }
+
+          return null;
+        })
+        .filter(Boolean);
+
+      if (alertas.length === 0) {
+        container.innerHTML = '<p class="empty-text">Nenhum alerta no momento. 👌</p>';
+        return;
+      }
+
+      alertas.forEach(a => {
+        const el = document.createElement('div');
+        el.className = 'alert-item ' + (a.tipo === 'VENCIDA' ? 'alert-vencida' : 'alert-vencendo');
+        el.textContent = a.msg;
+        container.appendChild(el);
+      });
+    }
+
+    function atualizarTudo() {
+      renderizarLista();
+      renderizarCalendario();
+      renderizarAlertas();
+    }
+
+    // ============ FORM & AÇÕES ============
+
+    function novaConta() {
+      limparForm();
+      document.getElementById('formTitulo').textContent = 'Nova conta';
+      document.getElementById('descricao').focus();
+    }
+
+    function editarConta(id) {
+      const conta = contas.find(c => c.id === id);
+      if (!conta) return;
+
+      document.getElementById('formTitulo').textContent = 'Editar conta';
+      document.getElementById('contaId').value = conta.id;
+      document.getElementById('tipo').value = conta.tipo;
+      document.getElementById('valor').value = conta.valor;
+      document.getElementById('descricao').value = conta.descricao;
+      document.getElementById('dataVencimento').value = String(conta.dataVencimento).substring(0, 10);
+      document.getElementById('recorrencia').value = conta.recorrencia || 'NENHUMA';
+      document.getElementById('status').value = conta.status || 'ABERTA';
+      document.getElementById('categoria').value = conta.categoria || '';
+      document.getElementById('observacoes').value = conta.observacoes || '';
+
+      document.getElementById('descricao').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function limparForm() {
+      document.getElementById('formTitulo').textContent = 'Nova conta';
+      document.getElementById('contaId').value = '';
+      document.getElementById('tipo').value = 'PAGAR';
+      document.getElementById('valor').value = '';
+      document.getElementById('descricao').value = '';
+      document.getElementById('dataVencimento').value = '';
+      document.getElementById('recorrencia').value = 'NENHUMA';
+      document.getElementById('status').value = 'ABERTA';
+      document.getElementById('categoria').value = '';
+      document.getElementById('observacoes').value = '';
+    }
+
+    document.getElementById('contaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      const id = document.getElementById('contaId').value;
+      const tipo = document.getElementById('tipo').value;
+      const valor = parseFloat(document.getElementById('valor').value || '0');
+      const descricao = document.getElementById('descricao').value.trim();
+      const dataVencimento = document.getElementById('dataVencimento').value;
+      const recorrencia = document.getElementById('recorrencia').value;
+      const status = document.getElementById('status').value;
+      const categoria = document.getElementById('categoria').value.trim();
+      const observacoes = document.getElementById('observacoes').value.trim();
+
+      if (!descricao || !dataVencimento || !valor) {
+        alert('Preencha descrição, valor e data de vencimento.');
+        return;
+      }
+
+      const payload = {
+        tipo,
+        valor,
+        descricao,
+        dataVencimento,
+        recorrencia,
+        status,
+        categoria,
+        observacoes
+      };
+
+      try {
+        let contaSalva;
+
+        if (!id) {
+          const resp = await fetch('http://localhost:3000/api/conta', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+          });
+
+          contaSalva = await resp.json();
+          if (!resp.ok) throw new Error(contaSalva.error || 'Erro ao cadastrar conta');
+
+          contas.push(contaSalva);
+        } else {
+          const resp = await fetch(`http://localhost:3000/api/conta/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+          });
+
+          contaSalva = await resp.json();
+          if (!resp.ok) throw new Error(contaSalva.error || 'Erro ao atualizar conta');
+
+          const idx = contas.findIndex(c => c.id === id);
+          if (idx !== -1) contas[idx] = contaSalva;
+        }
+
+        limparForm();
+        atualizarTudo();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Erro ao salvar conta.');
+      }
+    });
+
+    async function marcarPaga(id) {
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const resp = await fetch(`http://localhost:3000/api/conta/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'PAGA' })
+        });
+
+        const conta = await resp.json();
+        if (!resp.ok) throw new Error(conta.error || 'Erro ao marcar como paga');
+
+        const idx = contas.findIndex(c => c.id === id);
+        if (idx !== -1) contas[idx] = conta;
+
+        atualizarTudo();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Erro ao marcar como paga.');
+      }
+    }
+
+    async function marcarRenegociacao(id) {
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const resp = await fetch(`http://localhost:3000/api/conta/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'REN' })
+        });
+
+        const conta = await resp.json();
+        if (!resp.ok) throw new Error(conta.error || 'Erro ao marcar em renegociação');
+
+        const idx = contas.findIndex(c => c.id === id);
+        if (idx !== -1) contas[idx] = conta;
+
+        atualizarTudo();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Erro ao marcar em renegociação.');
+      }
+    }
+
+    async function excluirConta(id) {
+      if (!confirm('Deseja realmente excluir esta conta?')) return;
+
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const resp = await fetch(`http://localhost:3000/api/conta/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (resp.status !== 204) {
+          const body = await resp.json().catch(() => ({}));
+          throw new Error(body.error || 'Erro ao excluir conta');
+        }
+
+        contas = contas.filter(c => c.id !== id);
+        atualizarTudo();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Erro ao excluir conta.');
+      }
+    }
+
+    // ============ LISTENERS DE FILTRO & INIT ============
+
+    document.getElementById('filtroTipo').addEventListener('change', atualizarTudo);
+    document.getElementById('filtroStatus').addEventListener('change', atualizarTudo);
+    document.getElementById('filtroMes').addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val) {
+        const [ano, mes] = val.split('-').map(Number);
+        mesAtual = new Date(ano, mes - 1, 1);
+      } else {
+        mesAtual = new Date();
+      }
+      atualizarTudo();
+    });
+
+    const filtroBuscaEl = document.getElementById('filtroBusca');
+    if (filtroBuscaEl) {
+      filtroBuscaEl.addEventListener('input', atualizarTudo);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      const mesInput = document.getElementById('filtroMes');
+      const hoje = new Date();
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      mesInput.value = `${hoje.getFullYear()}-${mes}`;
+      mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+      await carregarContasDoServidor();
+      atualizarTudo();
+    });
+  </script>
+
+</body>
+</html>

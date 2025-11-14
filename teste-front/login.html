@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - RAJJ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="image-section">
+      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração de login">
+    </div>
+
+    <div class="form-section">
+      <form id="login-form">
+        <div class="form-header">
+          <h1>LOGIN</h1>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box">
+            <label for="email">E-mail</label>
+            <input id="email" type="email" placeholder="Digite seu e-mail" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box">
+            <label for="senha">Senha</label>
+            <input id="senha" type="password" placeholder="Digite sua senha" required>
+          </div>
+        </div>
+
+        <div class="continue-button">
+          <button type="submit">Entrar</button>
+        </div>
+      </form>
+
+      <div class="login-link">
+        <p>Não tem conta? <a href="index.html">Cadastre-se</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('senha').value;
+      const btn = document.querySelector('#login-form button');
+
+      btn.disabled = true;
+      btn.textContent = 'Entrando...';
+
+      try {
+        const response = await fetch('http://localhost:3000/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: senha })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.location.href = 'cadastro-aluno.html';
+        } else {
+          alert(data.message || 'Erro no login');
+        }
+      } catch (err) {
+        alert('Erro ao conectar com o servidor');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lista de Alunos - RAJJ</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .form-section h1 {
+      text-align: center;
+      color: #6a1b9a;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      max-width: 500px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 5px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-bar input:focus {
+      border-color: #6a1b9a;
+      box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.1);
+    }
+
+    .search-bar button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 5px;
+      background-color: #6a1b9a;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: filter 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .search-bar button:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .list-summary {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    .aluno-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .aluno-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 15px;
+      background-color: #fafafa;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+      transition: box-shadow 0.2s, transform 0.1s, border-color 0.2s;
+    }
+
+    .aluno-card:hover {
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+      border-color: #d1c4e9;
+    }
+
+    .aluno-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .aluno-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .aluno-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #d1c4e9;
+      background: #eee;
+      flex-shrink: 0;
+    }
+
+    .aluno-avatar.placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #777;
+    }
+
+    .aluno-card h3 {
+      color: #6a1b9a;
+      margin-bottom: 2px;
+      font-size: 1.1rem;
+    }
+
+    .aluno-card small {
+      color: #555;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .aluno-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: filter 0.2s, transform 0.1s;
+    }
+
+    .btn-edit {
+      background-color: #ffb300;
+      color: #000;
+    }
+
+    .btn-delete {
+      background-color: #e53935;
+      color: #fff;
+    }
+
+    .btn-icon:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .btn-icon span.emoji {
+      font-size: 1rem;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-novo-aluno {
+      background-color: #6a1b9a;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: filter 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn-novo-aluno:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .btn-novo-aluno span.emoji {
+      font-size: 1.1rem;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pagination button {
+      background-color: #6a1b9a;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: filter 0.2s, transform 0.1s, opacity 0.2s;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .pagination button:not(:disabled):hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .pagination-info {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    /* Painel de edição inline */
+    #editorSection {
+      display: none;
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #d1c4e9;
+      background-color: #f5f0ff;
+    }
+
+    #editorSection h2 {
+      margin-top: 0;
+      color: #6a1b9a;
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    #editorSection small {
+      display: block;
+      margin-bottom: 10px;
+      color: #555;
+    }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .editor-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .editor-field label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .editor-field input,
+    .editor-field textarea,
+    .editor-field select {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+      outline: none;
+      resize: vertical;
+      min-height: 34px;
+    }
+
+    .editor-field input:focus,
+    .editor-field textarea:focus,
+    .editor-field select:focus {
+      border-color: #6a1b9a;
+      box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.15);
+    }
+
+    .editor-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .btn-save {
+      background-color: #2e7d32;
+      color: #fff;
+    }
+
+    .btn-cancel {
+      background-color: #9e9e9e;
+      color: #fff;
+    }
+
+    /* Abas dentro do card do aluno (Dados / Documentos) */
+    .aluno-tabs {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+
+    .aluno-tab-button {
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+      cursor: pointer;
+    }
+
+    .aluno-tab-button.active {
+      background: #6a1b9a;
+      color: #fff;
+      border-color: #6a1b9a;
+    }
+
+    .aluno-tab-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .aluno-tab-content {
+      display: none;
+      margin-top: 4px;
+    }
+
+    .aluno-tab-content.active {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .aluno-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .aluno-header-left {
+        width: 100%;
+      }
+
+      .aluno-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .search-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="image-section">
+      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração RAJJ" />
+    </div>
+
+    <div class="form-section">
+      <h1>Lista de Alunos</h1>
+      <p class="subtitle">Consulte, edite ou exclua os cadastros de forma rápida e fácil.</p>
+
+      <div class="top-actions">
+        <div class="search-bar">
+          <input type="text" id="searchInput" placeholder="Buscar por nome..." />
+          <button type="button" onclick="buscar()">🔍 Buscar</button>
+        </div>
+
+        <button
+          class="btn-novo-aluno"
+          onclick="window.location.href='cadastro-aluno.html'">
+          <span class="emoji">➕</span>
+          <span>Novo Aluno</span>
+        </button>
+      </div>
+
+      <!-- Painel de edição inline -->
+      <div id="editorSection">
+        <h2 id="editorTitulo">Editar aluno</h2>
+        <small id="editorInfo"></small>
+
+        <div class="editor-grid">
+          <div class="editor-field">
+            <label for="editNome">Nome</label>
+            <input type="text" id="editNome" />
+          </div>
+
+          <div class="editor-field">
+            <label for="editCpf">CPF</label>
+            <input type="text" id="editCpf" maxlength="11" placeholder="Somente números" />
+          </div>
+
+          <div class="editor-field">
+            <label for="editDataNascimento">Data de Nascimento</label>
+            <input type="date" id="editDataNascimento" />
+          </div>
+
+          <div class="editor-field">
+            <label for="editSexo">Sexo</label>
+            <select id="editSexo">
+              <option value="">Selecione</option>
+              <option value="M">Masculino</option>
+              <option value="F">Feminino</option>
+            </select>
+          </div>
+
+          <div class="editor-field">
+            <label for="editResponsaveis">Responsáveis (separe por vírgula)</label>
+            <textarea id="editResponsaveis" rows="2" placeholder="Ex.: Maria, João"></textarea>
+          </div>
+
+          <div class="editor-field">
+            <label for="editAlergias">Alergias (separe por vírgula)</label>
+            <textarea id="editAlergias" rows="2" placeholder="Ex.: Amendoim, Lactose"></textarea>
+          </div>
+
+          <div class="editor-field">
+            <label for="editContatos">Contatos (separe por vírgula)</label>
+            <textarea id="editContatos" rows="2" placeholder="Ex.: (11) 99999-9999, email@exemplo.com"></textarea>
+          </div>
+        </div>
+
+        <div class="editor-actions">
+          <button type="button" class="btn-icon btn-cancel" onclick="cancelarEdicao()">
+            <span class="emoji">✖️</span>
+            <span>Cancelar</span>
+          </button>
+          <button type="button" class="btn-icon btn-save" onclick="salvarEdicao()">
+            <span class="emoji">💾</span>
+            <span>Salvar alterações</span>
+          </button>
+        </div>
+      </div>
+
+      <p id="listResumo" class="list-summary"></p>
+
+      <div id="listaAlunos" class="aluno-list"></div>
+
+      <div class="pagination">
+        <button id="prevPage" onclick="trocarPagina(-1)">⬅ Anterior</button>
+        <span id="paginationInfo" class="pagination-info"></span>
+        <button id="nextPage" onclick="trocarPagina(1)">Próxima ➡</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let alunos = [];
+    let paginaAtual = 1;
+    const itensPorPagina = 5;
+    let alunoEmEdicao = null;
+
+    function getTokenOrRedirect() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Você precisa estar logado.');
+        window.location.href = 'login.html';
+        return null;
+      }
+      return token;
+    }
+
+    function formatarData(dateStr) {
+      if (!dateStr) return 'N/A';
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) return 'N/A';
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const ano = d.getFullYear();
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    function formatarSexo(sexo) {
+      if (!sexo) return 'N/A';
+      const s = String(sexo).toUpperCase();
+      if (s === 'M') return 'Masculino';
+      if (s === 'F') return 'Feminino';
+      return sexo;
+    }
+
+    async function carregarAlunos() {
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const response = await fetch('http://localhost:3000/api/alunos', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar alunos');
+        }
+
+        alunos = await response.json();
+        paginaAtual = 1;
+        const filtrados = filtrarPorNome();
+        renderAlunos(filtrados);
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao carregar alunos');
+      }
+    }
+
+    function filtrarPorNome() {
+      const termo = document.getElementById('searchInput').value.toLowerCase();
+      return alunos.filter(aluno =>
+        aluno.nome?.toLowerCase().includes(termo)
+      );
+    }
+
+    function renderAlunos(lista) {
+      const container = document.getElementById('listaAlunos');
+      const resumo = document.getElementById('listResumo');
+      const pagInfo = document.getElementById('paginationInfo');
+
+      container.innerHTML = '';
+
+      const total = lista.length;
+      const inicio = (paginaAtual - 1) * itensPorPagina;
+      const fim = inicio + itensPorPagina;
+      const pagina = lista.slice(inicio, fim);
+
+      if (total === 0) {
+        resumo.textContent = 'Nenhum aluno encontrado.';
+        pagInfo.textContent = '';
+        atualizarBotoes(lista);
+        container.innerHTML = '<p>Nenhum aluno encontrado.</p>';
+        return;
+      }
+
+      const inicioExibido = inicio + 1;
+      const fimExibido = Math.min(fim, total);
+      resumo.textContent = `Mostrando ${inicioExibido}–${fimExibido} de ${total} aluno(s).`;
+      pagInfo.textContent = `Página ${paginaAtual} de ${Math.ceil(total / itensPorPagina)}`;
+
+      pagina.forEach(aluno => {
+        const card = document.createElement('div');
+        card.className = 'aluno-card';
+
+        const dataNasc = formatarData(aluno.dataNascimento);
+        const dataMatricula = formatarData(aluno.dataMatricula);
+        const fotoHtml = aluno.fotoPath
+          ? `<img class="aluno-avatar" src="http://localhost:3000${aluno.fotoPath}" alt="Foto de ${aluno.nome}">`
+          : `<div class="aluno-avatar placeholder">👤</div>`;
+
+        const temDocs = Array.isArray(aluno.documentos) && aluno.documentos.length > 0;
+        const docsHtml = temDocs
+          ? `<ul>${aluno.documentos.map((docPath, idx) => {
+              const url = `http://localhost:3000${docPath}`;
+              return `<li><a href="${url}" target="_blank" rel="noopener">Documento ${idx + 1}</a></li>`;
+            }).join('')}</ul>`
+          : '<p>Sem documentos enviados.</p>';
+
+        card.innerHTML = `
+          <div class="aluno-header">
+            <div class="aluno-header-left">
+              ${fotoHtml}
+              <div>
+                <h3>${aluno.nome}</h3>
+                <small><strong>Matrícula:</strong> ${aluno.numeroMatricula || '—'}</small>
+                <small><strong>CPF:</strong> ${aluno.cpf || 'N/A'}</small>
+                <small><strong>Status:</strong> ${aluno.status || 'ATIVO'} | <strong>Turma:</strong> ${aluno.turma || 'N/A'}</small>
+                <small><strong>Data matrícula:</strong> ${dataMatricula}</small>
+                <small><strong>Data nascimento:</strong> ${dataNasc}</small>
+                <small><strong>Sexo:</strong> ${formatarSexo(aluno.sexo)}</small>
+              </div>
+            </div>
+            <div class="aluno-actions">
+              <button class="btn-icon btn-edit" onclick="editarAluno('${aluno.id}')">
+                <span class="emoji">✏️</span>
+                <span>Editar</span>
+              </button>
+              <button class="btn-icon btn-delete" onclick="excluirAluno('${aluno.id}')">
+                <span class="emoji">🗑️</span>
+                <span>Excluir</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="aluno-tabs">
+            <button
+              type="button"
+              class="aluno-tab-button active"
+              data-aluno-id="${aluno.id}"
+              data-tab="dados"
+            >
+              Dados
+            </button>
+            <button
+              type="button"
+              class="aluno-tab-button"
+              data-aluno-id="${aluno.id}"
+              data-tab="docs"
+              ${temDocs ? '' : 'disabled'}
+            >
+              Documentos
+            </button>
+          </div>
+
+          <div class="aluno-tab-content-wrapper">
+            <div id="dados-${aluno.id}" class="aluno-tab-content active">
+              <small><strong>Responsáveis:</strong> ${
+                Array.isArray(aluno.responsaveis) && aluno.responsaveis.length
+                  ? aluno.responsaveis.join(', ')
+                  : 'N/A'
+              }</small>
+              <small><strong>Alergias:</strong> ${
+                Array.isArray(aluno.alergias) && aluno.alergias.length
+                  ? aluno.alergias.join(', ')
+                  : 'N/A'
+              }</small>
+              <small><strong>Contatos:</strong> ${
+                Array.isArray(aluno.contatos) && aluno.contatos.length
+                  ? aluno.contatos.join(', ')
+                  : 'N/A'
+              }</small>
+              <small><strong>Endereços:</strong> ${
+                Array.isArray(aluno.enderecos) && aluno.enderecos.length
+                  ? aluno.enderecos.map(e => `${e.rua}, ${e.numero} - ${e.bairro} (${e.cep})`).join('; ')
+                  : 'N/A'
+              }</small>
+              <small><strong>Observações:</strong> ${aluno.observacoes || '—'}</small>
+            </div>
+
+            <div id="docs-${aluno.id}" class="aluno-tab-content">
+              ${docsHtml}
+            </div>
+          </div>
+        `;
+
+        // listeners das abas internas (Dados / Documentos)
+        card.querySelectorAll('.aluno-tab-button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            const alunoId = btn.getAttribute('data-aluno-id');
+            const tab = btn.getAttribute('data-tab');
+
+            // toggle botões
+            card.querySelectorAll('.aluno-tab-button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // toggle conteúdos
+            card.querySelectorAll('.aluno-tab-content').forEach(c => c.classList.remove('active'));
+            const target = card.querySelector(`#${tab === 'dados' ? 'dados' : 'docs'}-${alunoId}`);
+            if (target) target.classList.add('active');
+          });
+        });
+
+        container.appendChild(card);
+      });
+
+      atualizarBotoes(lista);
+    }
+
+    function atualizarBotoes(lista) {
+      const totalPaginas = Math.ceil(lista.length / itensPorPagina);
+      const prevBtn = document.getElementById('prevPage');
+      const nextBtn = document.getElementById('nextPage');
+
+      if (totalPaginas === 0) {
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+      }
+
+      prevBtn.disabled = paginaAtual === 1;
+      nextBtn.disabled = paginaAtual === totalPaginas;
+    }
+
+    function trocarPagina(delta) {
+      const filtrados = filtrarPorNome();
+      const totalPaginas = Math.ceil(filtrados.length / itensPorPagina);
+
+      paginaAtual += delta;
+      if (paginaAtual < 1) paginaAtual = 1;
+      if (paginaAtual > totalPaginas) paginaAtual = totalPaginas || 1;
+
+      renderAlunos(filtrados);
+    }
+
+    function buscar() {
+      paginaAtual = 1;
+      const filtrados = filtrarPorNome();
+      renderAlunos(filtrados);
+    }
+
+    // ====== Editar aluno inline ======
+    function editarAluno(id) {
+      if (!id) return;
+      const aluno = alunos.find(a => a.id === id);
+      if (!aluno) return;
+
+      alunoEmEdicao = aluno;
+
+      document.getElementById('editorSection').style.display = 'block';
+      document.getElementById('editorTitulo').textContent = `Editar aluno`;
+      document.getElementById('editorInfo').textContent =
+        `Editando: ${aluno.nome} (ID: ${aluno.id})`;
+
+      document.getElementById('editNome').value = aluno.nome || '';
+      document.getElementById('editCpf').value = aluno.cpf || '';
+      document.getElementById('editDataNascimento').value =
+        aluno.dataNascimento ? String(aluno.dataNascimento).substring(0, 10) : '';
+      document.getElementById('editSexo').value = aluno.sexo || '';
+
+      document.getElementById('editResponsaveis').value =
+        Array.isArray(aluno.responsaveis) ? aluno.responsaveis.join(', ') : '';
+      document.getElementById('editAlergias').value =
+        Array.isArray(aluno.alergias) ? aluno.alergias.join(', ') : '';
+      document.getElementById('editContatos').value =
+        Array.isArray(aluno.contatos) ? aluno.contatos.join(', ') : '';
+
+      document.getElementById('editorSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function cancelarEdicao() {
+      alunoEmEdicao = null;
+      document.getElementById('editorSection').style.display = 'none';
+      document.getElementById('editNome').value = '';
+      document.getElementById('editCpf').value = '';
+      document.getElementById('editDataNascimento').value = '';
+      document.getElementById('editSexo').value = '';
+      document.getElementById('editResponsaveis').value = '';
+      document.getElementById('editAlergias').value = '';
+      document.getElementById('editContatos').value = '';
+    }
+
+    function splitCampo(idCampo) {
+      const valor = document.getElementById(idCampo).value;
+      return valor
+        .split(',')
+        .map(v => v.trim())
+        .filter(v => v.length > 0);
+    }
+
+    async function salvarEdicao() {
+      if (!alunoEmEdicao || !alunoEmEdicao.id) return;
+
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      const nome = document.getElementById('editNome').value.trim();
+      if (!nome) {
+        alert('Nome é obrigatório.');
+        return;
+      }
+
+      let cpf = document.getElementById('editCpf').value.replace(/\D/g, '');
+      if (!cpf || cpf.length !== 11) {
+        alert('CPF deve ter 11 dígitos.');
+        return;
+      }
+
+      const dataNascimento = document.getElementById('editDataNascimento').value;
+      if (!dataNascimento) {
+        alert('Informe a data de nascimento.');
+        return;
+      }
+
+      const sexo = document.getElementById('editSexo').value;
+      if (!sexo) {
+        alert('Selecione o sexo.');
+        return;
+      }
+
+      const payload = {
+        nome,
+        cpf,
+        dataNascimento,
+        sexo,
+        responsaveis: splitCampo('editResponsaveis'),
+        alergias: splitCampo('editAlergias'),
+        contatos: splitCampo('editContatos')
+      };
+
+      try {
+        const resp = await fetch(`http://localhost:3000/api/aluno/${alunoEmEdicao.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          const msg = body.error || 'Erro ao atualizar aluno';
+          throw new Error(msg);
+        }
+
+        const alunoAtualizado = await resp.json();
+
+        const idx = alunos.findIndex(a => a.id === alunoEmEdicao.id);
+        if (idx !== -1) {
+          alunos[idx] = alunoAtualizado;
+        }
+
+        cancelarEdicao();
+        const filtrados = filtrarPorNome();
+        renderAlunos(filtrados);
+
+        alert('Aluno atualizado com sucesso!');
+      } catch (error) {
+        console.error(error);
+        alert(error.message || 'Erro ao atualizar aluno.');
+      }
+    }
+
+    // ====== Excluir aluno (DELETE na API) ======
+    async function excluirAluno(id) {
+      if (!id) return;
+
+      const confirmar = confirm('Tem certeza que deseja excluir este aluno?');
+      if (!confirmar) return;
+
+      const token = getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const resp = await fetch(`http://localhost:3000/api/aluno/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (resp.status === 204) {
+          alunos = alunos.filter(a => a.id !== id);
+          const filtrados = filtrarPorNome();
+
+          const totalPaginas = Math.max(1, Math.ceil(filtrados.length / itensPorPagina));
+          if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+
+          renderAlunos(filtrados);
+
+          if (alunoEmEdicao && alunoEmEdicao.id === id) {
+            cancelarEdicao();
+          }
+        } else if (resp.status === 404) {
+          alert('Aluno não encontrado.');
+        } else {
+          throw new Error('Erro ao excluir aluno');
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Erro ao excluir aluno.');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', carregarAlunos);
+  </script>
+</body>
+</html>
