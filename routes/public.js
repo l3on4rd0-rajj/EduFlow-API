@@ -1,30 +1,50 @@
+// routes/public.js
 import express from 'express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import nodemailer from 'nodemailer'
 import { PrismaClient } from '../generated/prisma/index.js'
 
 const prisma = new PrismaClient()
 const router = express.Router()
-const JWT_SECRET = process.env.JWT_SECRET
 
+// Segredos
+const JWT_SECRET = process.env.JWT_SECRET
+const RESET_PASSWORD_SECRET = process.env.RESET_PASSWORD_SECRET || `${JWT_SECRET}_RESET`
+
+// Config SMTP Gmail:
+// - SMTP_USER  = seuemail@gmail.com
+// - SMTP_PASS  = senha de app gerada no Google (NÃO a senha normal)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+})
+
+// =============================
 // Configurações de segurança
+// =============================
 const MAX_LOGIN_ATTEMPTS = 5
-const LOGIN_BLOCK_TIME = 5 * 60 * 1000 // 5 minutos em milissegundos
+const LOGIN_BLOCK_TIME = 5 * 60 * 1000 // 5 minutos em ms
 const failedLoginAttempts = new Map()
 
-// Middleware para verificar tentativas de login
+// Middleware para verificar tentativas de login por IP
 const checkLoginAttempts = (req, res, next) => {
   const ip = req.ip
   const attempts = failedLoginAttempts.get(ip) || { count: 0, lastAttempt: 0 }
 
   if (attempts.count >= MAX_LOGIN_ATTEMPTS) {
-    const timeRemaining = Math.ceil((attempts.lastAttempt + LOGIN_BLOCK_TIME - Date.now()) / 1000 / 60)
-    if (timeRemaining > 0) {
-      return res.status(429).json({ 
-        message: `Muitas tentativas falhas. Tente novamente em ${timeRemaining} minutos.` 
+    const timeRemainingMs = attempts.lastAttempt + LOGIN_BLOCK_TIME - Date.now()
+    const timeRemainingMinutes = Math.ceil(timeRemainingMs / 1000 / 60)
+
+    if (timeRemainingMs > 0) {
+      return res.status(429).json({
+        message: `Muitas tentativas falhas. Tente novamente em ${timeRemainingMinutes} minutos.`,
       })
     } else {
-      // Reset após o tempo de bloqueio
+      // Tempo de bloqueio expirou, reseta contador
       failedLoginAttempts.delete(ip)
     }
   }
@@ -34,20 +54,45 @@ const checkLoginAttempts = (req, res, next) => {
 // Validador de senha forte
 const isStrongPassword = (password) => {
   const strongRegex = new RegExp(
-    "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})"
+    '^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})'
   )
   return strongRegex.test(password)
 }
 
+// Função auxiliar para envio de e-mail de redefinição
+const sendResetPasswordEmail = async (user, token) => {
+  const appUrl = process.env.APP_URL || 'http://localhost:3000'
+  const resetLink = `${appUrl}/reset-password.html?token=${encodeURIComponent(token)}`
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: user.email,
+    subject: 'Redefinição de senha - RAJJ',
+    html: `
+      <p>Olá, ${user.name}!</p>
+      <p>Recebemos uma solicitação para redefinir a sua senha.</p>
+      <p>Clique no link abaixo para criar uma nova senha (válido por 15 minutos):</p>
+      <p><a href="${resetLink}">${resetLink}</a></p>
+      <p>Se você não fez essa solicitação, ignore este e-mail.</p>
+    `,
+  })
+}
+
+// =============================
 // CADASTRO
+// =============================
 router.post('/cadastro', async (req, res) => {
   try {
     const { name, email, password } = req.body
 
-    // Verifica força da senha
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Nome, e-mail e senha são obrigatórios' })
+    }
+
     if (!isStrongPassword(password)) {
-      return res.status(400).json({ 
-        message: 'A senha deve conter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas, números e caracteres especiais' 
+      return res.status(400).json({
+        message:
+          'A senha deve conter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas, números e caracteres especiais',
       })
     }
 
@@ -66,48 +111,53 @@ router.post('/cadastro', async (req, res) => {
       id: userDB.id,
       name: userDB.name,
       email: userDB.email,
-      message: 'Usuário criado com sucesso'
+      message: 'Usuário criado com sucesso',
     })
-
   } catch (err) {
-    if (err.code === 'P2002') { // Erro de email único do Prisma
-      return res.status(400).json({ message: 'Email já está em uso' })
+    console.error('Erro no cadastro:', err)
+
+    // Erro de email único do Prisma
+    if (err.code === 'P2002') {
+      return res.status(400).json({ message: 'E-mail já está em uso' })
     }
+
     res.status(500).json({ message: 'Erro no servidor, tente novamente' })
   }
 })
 
+// =============================
 // LOGIN
+// =============================
 router.post('/login', checkLoginAttempts, async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const ip = req.ip; // Adicione esta linha
+    const { email, password } = req.body
+    const ip = req.ip
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email e senha são obrigatórios' });
+      return res.status(400).json({ message: 'E-mail e senha são obrigatórios' })
     }
 
     const user = await prisma.Cluster0.findUnique({
       where: { email },
-    });
+    })
 
     if (!user) {
-      return res.status(401).json({ message: 'Credenciais inválidas' });
+      return res.status(401).json({ message: 'Credenciais inválidas' })
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password)
 
     if (!isPasswordValid) {
-
-      // Registrar tentativa falha
       const attempts = failedLoginAttempts.get(ip) || { count: 0, lastAttempt: 0 }
+
       failedLoginAttempts.set(ip, {
         count: attempts.count + 1,
-        lastAttempt: Date.now()
+        lastAttempt: Date.now(),
       })
-      
-      return res.status(401).json({ 
+
+      return res.status(401).json({
         message: 'Credenciais inválidas',
-        attemptsRemaining: MAX_LOGIN_ATTEMPTS - (attempts.count + 1)
+        attemptsRemaining: MAX_LOGIN_ATTEMPTS - (attempts.count + 1),
       })
     }
 
@@ -117,17 +167,101 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email },
       JWT_SECRET,
-      { expiresIn: '10m' } 
+      { expiresIn: '10m' }
     )
 
     res.status(200).json({
       message: 'Login realizado com sucesso',
       token,
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { id: user.id, name: user.name, email: user.email },
+    })
+  } catch (err) {
+    console.error('Erro no login:', err)
+    res.status(500).json({ message: 'Erro no servidor, tente novamente' })
+  }
+})
+
+// =============================
+// ESQUECI MINHA SENHA
+// =============================
+router.post('/esqueci-senha', async (req, res) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      return res.status(400).json({ message: 'E-mail é obrigatório' })
+    }
+
+    const user = await prisma.Cluster0.findUnique({
+      where: { email },
     })
 
+    // Para não vazar se o e-mail existe ou não, retornamos sempre a mesma msg
+    if (!user) {
+      return res.status(200).json({
+        message: 'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
+      })
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, type: 'reset' },
+      RESET_PASSWORD_SECRET,
+      { expiresIn: '15m' } // token de reset válido por 15 minutos
+    )
+
+    await sendResetPasswordEmail(user, token)
+
+    return res.status(200).json({
+      message: 'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
+    })
   } catch (err) {
-    res.status(500).json({ message: 'Erro no servidor, tente novamente' })
+    console.error('Erro em /esqueci-senha:', err)
+    return res.status(500).json({ message: 'Erro ao processar pedido de redefinição.' })
+  }
+})
+
+// =============================
+// REDEFINIR SENHA
+// =============================
+router.post('/redefinir-senha', async (req, res) => {
+  try {
+    const { token, password } = req.body
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token e nova senha são obrigatórios' })
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        message:
+          'A senha deve conter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas, números e caracteres especiais',
+      })
+    }
+
+    let payload
+    try {
+      payload = jwt.verify(token, RESET_PASSWORD_SECRET)
+    } catch (err) {
+      console.error('Erro ao verificar token de reset:', err)
+      return res.status(400).json({ message: 'Token inválido ou expirado' })
+    }
+
+    if (!payload || payload.type !== 'reset') {
+      return res.status(400).json({ message: 'Token inválido' })
+    }
+
+    const salt = await bcrypt.genSalt(10)
+    const hashPassword = await bcrypt.hash(password, salt)
+
+    await prisma.Cluster0.update({
+      where: { id: payload.id },
+      data: { password: hashPassword },
+    })
+
+    return res.status(200).json({ message: 'Senha redefinida com sucesso. Faça login novamente.' })
+  } catch (err) {
+    console.error('Erro em /redefinir-senha:', err)
+    return res.status(500).json({ message: 'Erro ao redefinir senha.' })
   }
 })
 

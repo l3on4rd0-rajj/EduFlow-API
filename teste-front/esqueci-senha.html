@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Esqueci minha senha - RAJJ</title>
+  </head>
+  <body>
+    <h1>Esqueci minha senha</h1>
+
+    <form id="forgotForm">
+      <label>
+        E-mail:
+        <input type="email" id="email" required />
+      </label>
+      <button type="submit">Enviar link de redefinição</button>
+    </form>
+
+    <p id="msg"></p>
+
+    <script>
+      const form = document.getElementById('forgotForm')
+      const msg = document.getElementById('msg')
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const email = document.getElementById('email').value
+
+        try {
+          const resp = await fetch('http://localhost:3000/esqueci-senha', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email })
+})
+
+          const data = await resp.json()
+          msg.textContent = data.message || 'Solicitação enviada.'
+        } catch (err) {
+          msg.textContent = 'Erro ao enviar solicitação.'
+        }
+      })
+    </script>
+  </body>
+</html>

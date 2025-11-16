@@ -262,14 +262,53 @@ router.get('/alunos', async (_req, res) => {
   }
 })
 
-// Atualizar (PATCH) – mantém lógica, permite mudar status/turma/etc.
+// Atualizar (PATCH) – agora edita todos os dados principais + endereços
 router.patch('/aluno/:id', async (req, res) => {
   const { id } = req.params
-  const data = req.body
-  console.log('[PATCH /aluno/:id] payload:', data)
+  const data = { ...req.body } // clona para podermos alterar
+  console.log('[PATCH /aluno/:id] payload:', JSON.stringify(data, null, 2))
 
   try {
-    if (data.nome === '') {
+    // não permitir edição de numeroMatricula
+    if ('numeroMatricula' in data) {
+      delete data.numeroMatricula
+    }
+
+    // ==== ENDEREÇOS (se vierem no body) ====
+    let endArr = null
+    if (data.enderecos !== undefined) {
+      const enderecosInput = data.enderecos
+      delete data.enderecos
+
+      if (!Array.isArray(enderecosInput)) {
+        return res.status(400).json({ error: 'Endereços deve ser um array' })
+      }
+
+      endArr = enderecosInput.map((e) => {
+        if (!e) {
+          throw new Error('Endereço inválido')
+        }
+
+        const cep = String(e.cep || '').trim()
+        const rua = String(e.rua || '').trim()
+        const bairro = String(e.bairro || '').trim()
+        const numero = String(e.numero || '').trim()
+        const cidade = String(e.cidade || '').trim()
+        const estado = String(e.estado || '').trim()
+
+        if (![rua, bairro, numero, cidade, estado].every(isNonEmptyString)) {
+          throw new Error('Campos de endereço são obrigatórios')
+        }
+        if (!CEP_RE.test(cep)) {
+          throw new Error('CEP deve conter 8 dígitos')
+        }
+
+        return { cep, rua, bairro, numero, cidade, estado }
+      })
+    }
+
+    // ==== CAMPOS SIMPLES ====
+    if (data.nome !== undefined && data.nome === '') {
       return res.status(400).json({ error: 'Nome é obrigatório' })
     }
 
@@ -296,7 +335,7 @@ router.patch('/aluno/:id', async (req, res) => {
     if (data.status !== undefined) {
       const statusNorm = String(data.status).trim().toUpperCase()
       if (!STATUS_VALUES.includes(statusNorm)) {
-        return res.status(400).json({ error: 'Status inválido' })
+        return res.status(400).json({ error: 'Status inválido (ATIVO/INATIVO)' })
       }
       data.status = statusNorm
     }
@@ -309,26 +348,99 @@ router.patch('/aluno/:id', async (req, res) => {
       data.turma = turmaNorm
     }
 
-    if (data.observacoes !== undefined && data.observacoes !== null) {
-      if (String(data.observacoes).length > MAX_OBS_LEN) {
-        return res.status(400).json({ error: `Observações deve ter no máximo ${MAX_OBS_LEN} caracteres` })
+    if (data.observacoes !== undefined) {
+      const obs = String(data.observacoes).trim()
+      if (obs.length === 0) {
+        data.observacoes = null
+      } else {
+        if (obs.length > MAX_OBS_LEN) {
+          return res.status(400).json({ error: `Observações deve ter no máximo ${MAX_OBS_LEN} caracteres` })
+        }
+        data.observacoes = obs
       }
     }
 
-    const aluno = await prisma.aluno.update({
-      where: { id },
-      data
+    // normalizar arrays
+    if (data.responsaveis !== undefined) {
+      data.responsaveis = parseArrayField(data.responsaveis)
+        .map(String)
+        .map(s => s.trim())
+        .filter(isNonEmptyString)
+    }
+
+    if (data.alergias !== undefined) {
+      data.alergias = parseArrayField(data.alergias)
+        .map(String)
+        .map(s => s.trim())
+        .filter(isNonEmptyString)
+    }
+
+    if (data.contatos !== undefined) {
+      data.contatos = parseArrayField(data.contatos)
+        .map(String)
+        .map(s => s.trim())
+        .filter(isNonEmptyString)
+    }
+
+    // ==== TRANSAÇÃO: atualiza aluno + endereços ====
+    const alunoAtualizado = await prisma.$transaction(async (tx) => {
+      // se veio endArr, refaz todos os endereços do aluno
+      if (endArr !== null) {
+        await tx.endereco.deleteMany({ where: { alunoId: id } })
+        if (endArr.length > 0) {
+          await tx.endereco.createMany({
+            data: endArr.map(e => ({
+              cep: e.cep,
+              rua: e.rua,
+              bairro: e.bairro,
+              numero: e.numero,
+              cidade: e.cidade,
+              estado: e.estado,
+              alunoId: id
+            }))
+          })
+        }
+      }
+
+      await tx.aluno.update({
+        where: { id },
+        data
+      })
+
+      // devolve já com endereços
+      return tx.aluno.findUnique({
+        where: { id },
+        include: { enderecos: true }
+      })
     })
-    res.json(aluno)
+
+    if (!alunoAtualizado) {
+      return res.status(404).json({ error: 'Aluno não encontrado' })
+    }
+
+    res.json(alunoAtualizado)
   } catch (error) {
-    console.error(error)
-    if (error.code === 'P2025') return res.status(404).json({ error: 'Aluno não encontrado' })
+    console.error('[PATCH /aluno/:id] ERRO:', error)
+
+    // erros de validação de endereço caem aqui
+    if (error.message === 'Endereço inválido' ||
+        error.message === 'Campos de endereço são obrigatórios' ||
+        error.message === 'CEP deve conter 8 dígitos') {
+      return res.status(400).json({ error: error.message })
+    }
+
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Aluno não encontrado' })
+    }
     if (error.code === 'P2002' && error.meta?.target?.includes('numeroMatricula')) {
       return res.status(409).json({ error: 'Número de matrícula já cadastrado' })
     }
+
     res.status(500).json({ error: 'Erro ao atualizar aluno' })
   }
 })
+
+
 
 // Excluir (DELETE)
 router.delete('/aluno/:idAluno', async (req, res) => {
