@@ -1,4 +1,5 @@
 // server.js
+import 'dotenv/config'              // garante que o .env seja carregado
 import express from 'express'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
@@ -22,8 +23,11 @@ const __dirname = path.dirname(__filename)
 app.use(helmet())
 app.use(express.json({ limit: '10kb' }))
 app.disable('x-powered-by')
+
+// CORS liberado pra testes. Em produção, restrinja o origin.
 app.use(cors({ origin: '*' }))
 
+// Rate limit global
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -32,17 +36,17 @@ const limiter = rateLimit({
 })
 app.use(limiter)
 
-// ====== arquivos estáticos ======
-// front-end (ajuste se seu HTML estiver em outra pasta)
-app.use(express.static(path.join(__dirname, 'public')))
+// ====== arquivos estáticos (FRONT-END) ======
+// Agora servindo a pasta "teste-front"
+app.use(express.static(path.join(__dirname, 'teste-front')))
 
 // uploads de alunos (fotos/documentos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
-// ---------- Rotas públicas (sem token) ----------
+// ====== Rotas públicas (sem token) ======
 app.use('/', publicRoutes)
 
-// ---------- Debug para /api ----------
+// ====== Debug para /api ======
 app.use('/api', (req, _res, next) => {
   console.log(
     '[API hit]',
@@ -54,21 +58,27 @@ app.use('/api', (req, _res, next) => {
   next()
 })
 
-// ---------- Rotas de alunos (pode colocar auth aqui se quiser) ----------
+// ====== Rotas de alunos (pode colocar auth aqui se quiser) ======
 app.use('/api', alunoRoutes)
 
-// ---------- Rotas de contas protegidas por token ----------
+// ====== Rotas de contas protegidas por token ======
 app.use('/api', auth, contasRoutes)
 
-// ---------- Rotas privadas (exemplo) ----------
+// ====== Rotas privadas (exemplo) ======
 app.use('/private', auth, privateRoutes)
 
-// 404 JSON
+// Redirecionar / para a tela de login (opcional)
+app.get('/', (req, res, next) => {
+  // se o arquivo não existir, cai no 404 depois
+  res.sendFile(path.join(__dirname, 'teste-front', 'login.html'))
+})
+
+// 404 JSON para qualquer coisa não atendida
 app.use((req, res) => {
   res.status(404).json({
     error: 'Rota não encontrada',
     method: req.method,
-    path: req.originalUrl
+    path: req.originalUrl,
   })
 })
 

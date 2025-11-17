@@ -27,14 +27,15 @@
 
         try {
           const resp = await fetch('http://localhost:3000/esqueci-senha', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email })
-})
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          })
 
           const data = await resp.json()
           msg.textContent = data.message || 'Solicitação enviada.'
         } catch (err) {
+          console.error(err)
           msg.textContent = 'Erro ao enviar solicitação.'
         }
       })

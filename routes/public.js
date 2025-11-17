@@ -10,7 +10,12 @@ const router = express.Router()
 
 // Segredos
 const JWT_SECRET = process.env.JWT_SECRET
-const RESET_PASSWORD_SECRET = process.env.RESET_PASSWORD_SECRET || `${JWT_SECRET}_RESET`
+if (!JWT_SECRET) {
+  console.warn('[WARN] JWT_SECRET não definido no .env')
+}
+
+const RESET_PASSWORD_SECRET =
+  process.env.RESET_PASSWORD_SECRET || `${JWT_SECRET || 'fallback'}_RESET`
 
 // Config SMTP Gmail:
 // - SMTP_USER  = seuemail@gmail.com
@@ -86,7 +91,9 @@ router.post('/cadastro', async (req, res) => {
     const { name, email, password } = req.body
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Nome, e-mail e senha são obrigatórios' })
+      return res
+        .status(400)
+        .json({ message: 'Nome, e-mail e senha são obrigatórios' })
     }
 
     if (!isStrongPassword(password)) {
@@ -116,7 +123,6 @@ router.post('/cadastro', async (req, res) => {
   } catch (err) {
     console.error('Erro no cadastro:', err)
 
-    // Erro de email único do Prisma
     if (err.code === 'P2002') {
       return res.status(400).json({ message: 'E-mail já está em uso' })
     }
@@ -134,7 +140,9 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     const ip = req.ip
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'E-mail e senha são obrigatórios' })
+      return res
+        .status(400)
+        .json({ message: 'E-mail e senha são obrigatórios' })
     }
 
     const user = await prisma.Cluster0.findUnique({
@@ -148,7 +156,10 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password)
 
     if (!isPasswordValid) {
-      const attempts = failedLoginAttempts.get(ip) || { count: 0, lastAttempt: 0 }
+      const attempts = failedLoginAttempts.get(ip) || {
+        count: 0,
+        lastAttempt: 0,
+      }
 
       failedLoginAttempts.set(ip, {
         count: attempts.count + 1,
@@ -196,39 +207,45 @@ router.post('/esqueci-senha', async (req, res) => {
       where: { email },
     })
 
-    // Para não vazar se o e-mail existe ou não, retornamos sempre a mesma msg
+    // Para não vazar se o e-mail existe ou não
     if (!user) {
       return res.status(200).json({
-        message: 'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
+        message:
+          'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
       })
     }
 
     const token = jwt.sign(
       { id: user.id, email: user.email, type: 'reset' },
       RESET_PASSWORD_SECRET,
-      { expiresIn: '15m' } // token de reset válido por 15 minutos
+      { expiresIn: '15m' }
     )
 
     await sendResetPasswordEmail(user, token)
 
     return res.status(200).json({
-      message: 'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
+      message:
+        'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
     })
   } catch (err) {
     console.error('Erro em /esqueci-senha:', err)
-    return res.status(500).json({ message: 'Erro ao processar pedido de redefinição.' })
+    return res
+      .status(500)
+      .json({ message: 'Erro ao processar pedido de redefinição.' })
   }
 })
 
 // =============================
-// REDEFINIR SENHA
+// REDEFINIR SENHA (API)
 // =============================
-router.post('/redefinir-senha', async (req, res) => {
+router.post('/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body
 
     if (!token || !password) {
-      return res.status(400).json({ message: 'Token e nova senha são obrigatórios' })
+      return res
+        .status(400)
+        .json({ message: 'Token e nova senha são obrigatórios' })
     }
 
     if (!isStrongPassword(password)) {
@@ -258,9 +275,11 @@ router.post('/redefinir-senha', async (req, res) => {
       data: { password: hashPassword },
     })
 
-    return res.status(200).json({ message: 'Senha redefinida com sucesso. Faça login novamente.' })
+    return res
+      .status(200)
+      .json({ message: 'Senha redefinida com sucesso. Faça login novamente.' })
   } catch (err) {
-    console.error('Erro em /redefinir-senha:', err)
+    console.error('Erro em /reset-password:', err)
     return res.status(500).json({ message: 'Erro ao redefinir senha.' })
   }
 })
