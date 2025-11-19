@@ -2,43 +2,82 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Esqueci minha senha - RAJJ</title>
+
+    <!-- Fonte e CSS iguais ao login -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
   </head>
   <body>
-    <h1>Esqueci minha senha</h1>
+    <div class="container">
+      <!-- IMAGEM LATERAL -->
+      <div class="image-section">
+        <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração" />
+      </div>
 
-    <form id="forgotForm">
-      <label>
-        E-mail:
-        <input type="email" id="email" required />
-      </label>
-      <button type="submit">Enviar link de redefinição</button>
-    </form>
+      <!-- FORMULÁRIO -->
+      <div class="form-section">
+        <div class="form-header">
+          <div class="title">
+            <h1>ESQUECI MINHA SENHA</h1>
+          </div>
+          <p class="subtitle">
+            Informe o e-mail cadastrado para enviarmos o link de redefinição.
+          </p>
+        </div>
 
-    <p id="msg"></p>
+        <form id="forgotForm">
+          <div class="input-group">
+            <div class="input-box">
+              <label for="email">E-mail</label>
+              <input
+                type="email"
+                id="email"
+                placeholder="Digite seu e-mail"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="continue-button">
+            <button type="submit">Enviar link de redefinição</button>
+          </div>
+        </form>
+
+        <p id="msg" style="margin-top: 16px; text-align: center;"></p>
+
+        <div class="login-link">
+          <p>
+            Lembrou a senha?
+            <a href="login.html">Voltar para o login</a>
+          </p>
+        </div>
+      </div>
+    </div>
 
     <script>
-      const form = document.getElementById('forgotForm')
-      const msg = document.getElementById('msg')
+      const form = document.getElementById('forgotForm');
+      const msg = document.getElementById('msg');
 
       form.addEventListener('submit', async (e) => {
-        e.preventDefault()
-        const email = document.getElementById('email').value
+        e.preventDefault();
+        const email = document.getElementById('email').value;
 
         try {
           const resp = await fetch('http://localhost:3000/esqueci-senha', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email }),
-          })
+          });
 
-          const data = await resp.json()
-          msg.textContent = data.message || 'Solicitação enviada.'
+          const data = await resp.json();
+          msg.textContent = data.message || 'Solicitação enviada.';
         } catch (err) {
-          console.error(err)
-          msg.textContent = 'Erro ao enviar solicitação.'
+          console.error(err);
+          msg.textContent = 'Erro ao enviar solicitação.';
         }
-      })
+      });
     </script>
   </body>
 </html>
