@@ -1,3 +1,4 @@
+// routes/alunos.js
 import express from 'express'
 import { PrismaClient } from '../generated/prisma/index.js'
 import multer from 'multer'
@@ -8,10 +9,8 @@ const router = express.Router()
 const prisma = new PrismaClient()
 
 // ====== CONSTANTES / HELPERS ======
-const toArray = (v) => (Array.isArray(v) ? v : (v == null ? [] : [v]))
 const isNonEmptyString = (s) => typeof s === 'string' && s.trim().length > 0
 const CEP_RE = /^\d{8}$/
-const CPF_RE = /^\d{11}$/
 const STATUS_VALUES = ['ATIVO', 'INATIVO']
 const TURMA_VALUES = ['BERCARIO', 'MATERNAL', 'PRE_ESCOLAR', 'EXTRA_CLASSE']
 const MAX_OBS_LEN = 500
@@ -24,6 +23,37 @@ const parseArrayField = (value) => {
     if (Array.isArray(parsed)) return parsed
   } catch (_) {}
   return [String(value)]
+}
+
+// ===== CPF: validação completa (back) =====
+const validarCPF = (rawCpf) => {
+  let cpf = String(rawCpf || '').replace(/\D/g, '')
+  if (!cpf || cpf.length !== 11) return false
+
+  // rejeita 00000000000, 11111111111 etc.
+  if (/^(\d)\1{10}$/.test(cpf)) return false
+
+  let soma = 0
+  let resto
+
+  // 1º dígito verificador
+  for (let i = 1; i <= 9; i++) {
+    soma += parseInt(cpf.substring(i - 1, i), 10) * (11 - i)
+  }
+  resto = (soma * 10) % 11
+  if (resto === 10 || resto === 11) resto = 0
+  if (resto !== parseInt(cpf.substring(9, 10), 10)) return false
+
+  // 2º dígito verificador
+  soma = 0
+  for (let i = 1; i <= 10; i++) {
+    soma += parseInt(cpf.substring(i - 1, i), 10) * (12 - i)
+  }
+  resto = (soma * 10) % 11
+  if (resto === 10 || resto === 11) resto = 0
+  if (resto !== parseInt(cpf.substring(10, 11), 10)) return false
+
+  return true
 }
 
 // ===== MULTER (upload de foto/documentos) =====
@@ -108,7 +138,6 @@ router.post(
         turma,
         dataMatricula,
         observacoes
-        // numeroMatricula NÃO vem do front
       } = req.body
 
       // ==== validações ====
@@ -116,8 +145,9 @@ router.post(
         return res.status(400).json({ error: 'Nome é obrigatório' })
       }
 
-      if (!CPF_RE.test(String(cpf))) {
-        return res.status(400).json({ error: 'CPF deve conter 11 dígitos numéricos' })
+      // CPF: validação completa
+      if (!validarCPF(cpf)) {
+        return res.status(400).json({ error: 'CPF inválido' })
       }
 
       if (!isNonEmptyString(dataNascimento)) {
@@ -210,7 +240,7 @@ router.post(
       const aluno = await prisma.aluno.create({
         data: {
           nome: nome.trim(),
-          cpf: String(cpf).trim(),
+          cpf: String(cpf).replace(/\D/g, ''),
           dataNascimento: nascimentoDate,
           sexo: sexoNorm,
           responsaveis: respArr,
@@ -248,7 +278,9 @@ router.post(
   }
 )
 
-// Listar alunos (GET /api/alunos) – com foto e documentos disponíveis
+// =======================================
+// Listar alunos (GET /api/alunos)
+// =======================================
 router.get('/alunos', async (_req, res) => {
   try {
     const alunos = await prisma.aluno.findMany({
@@ -262,10 +294,12 @@ router.get('/alunos', async (_req, res) => {
   }
 })
 
-// Atualizar (PATCH) – agora edita todos os dados principais + endereços
+// =======================================
+// Atualizar aluno (PATCH /api/aluno/:id)
+// =======================================
 router.patch('/aluno/:id', async (req, res) => {
   const { id } = req.params
-  const data = { ...req.body } // clona para podermos alterar
+  const data = { ...req.body }
   console.log('[PATCH /aluno/:id] payload:', JSON.stringify(data, null, 2))
 
   try {
@@ -312,8 +346,9 @@ router.patch('/aluno/:id', async (req, res) => {
       return res.status(400).json({ error: 'Nome é obrigatório' })
     }
 
-    if (data.cpf !== undefined && !CPF_RE.test(String(data.cpf))) {
-      return res.status(400).json({ error: 'CPF deve conter 11 dígitos numéricos' })
+    // CPF: validação também em updates
+    if (data.cpf !== undefined && !validarCPF(data.cpf)) {
+      return res.status(400).json({ error: 'CPF inválido' })
     }
 
     if (data.dataNascimento !== undefined) {
@@ -440,9 +475,9 @@ router.patch('/aluno/:id', async (req, res) => {
   }
 })
 
-
-
-// Excluir (DELETE)
+// =======================================
+// Excluir aluno (DELETE /api/aluno/:idAluno)
+// =======================================
 router.delete('/aluno/:idAluno', async (req, res) => {
   const { idAluno } = req.params
   try {
@@ -451,15 +486,20 @@ router.delete('/aluno/:idAluno', async (req, res) => {
     return res.status(204).send()
   } catch (error) {
     console.error('Erro da exclusão: ', error)
-    if (error.code === 'P2025') return res.status(404).json({ error: 'Aluno não encontrado' })
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Aluno não encontrado' })
+    }
     return res.status(500).json({ error: 'Erro ao excluir aluno' })
   }
 })
 
-// Buscar um aluno por ID
+// =======================================
+// Buscar aluno por ID (GET /api/aluno/:id)
+// =======================================
 router.get('/aluno/:id', async (req, res) => {
   const { id } = req.params
 
+  // valida ID como ObjectId (24 hex) se for o caso
   if (!/^[a-fA-F0-9]{24}$/.test(id)) {
     return res.status(400).json({ error: 'ID inválido' })
   }
