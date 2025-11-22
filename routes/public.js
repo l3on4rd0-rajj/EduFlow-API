@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 import { PrismaClient } from '../generated/prisma/index.js'
+import he from 'he'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -67,17 +68,23 @@ const isStrongPassword = (password) => {
 // Função auxiliar para envio de e-mail de redefinição
 const sendResetPasswordEmail = async (user, token) => {
   const appUrl = process.env.APP_URL || 'http://localhost:3000'
-  const resetLink = `${appUrl}/reset-password.html?token=${encodeURIComponent(token)}`
+  const resetLink = `${appUrl}/reset-password.html?token=${encodeURIComponent(
+    token
+  )}`
+
+  // Proteção contra XSS no conteúdo do e-mail
+  const safeName = he.encode(user.name || '')
+  const safeResetLink = he.encode(resetLink)
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: user.email,
     subject: 'Redefinição de senha - RAJJ',
     html: `
-      <p>Olá, ${user.name}!</p>
+      <p>Olá, ${safeName}!</p>
       <p>Recebemos uma solicitação para redefinir a sua senha.</p>
       <p>Clique no link abaixo para criar uma nova senha (válido por 15 minutos):</p>
-      <p><a href="${resetLink}">${resetLink}</a></p>
+      <p><a href="${safeResetLink}">${safeResetLink}</a></p>
       <p>Se você não fez essa solicitação, ignore este e-mail.</p>
     `,
   })
