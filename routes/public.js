@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 import { PrismaClient } from '../generated/prisma/index.js'
+import he from 'he'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -74,10 +75,10 @@ const sendResetPasswordEmail = async (user, token) => {
     to: user.email,
     subject: 'Redefinição de senha - RAJJ',
     html: `
-      <p>Olá, ${user.name}!</p>
+      <p>Olá, ${he.encode(user.name)}!</p>
       <p>Recebemos uma solicitação para redefinir a sua senha.</p>
       <p>Clique no link abaixo para criar uma nova senha (válido por 15 minutos):</p>
-      <p><a href="${resetLink}">${resetLink}</a></p>
+      <p><a href="${he.encode(resetLink)}">${he.encode(resetLink)}</a></p>
       <p>Se você não fez essa solicitação, ignore este e-mail.</p>
     `,
   })
