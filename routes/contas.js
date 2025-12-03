@@ -9,6 +9,130 @@ const TIPOS = ['PAGAR', 'RECEBER']
 const STATUS = ['ABERTA', 'PAGA', 'REN']
 const RECORRENCIAS = ['NENHUMA', 'MENSAL', 'SEMANAL', 'ANUAL']
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Contas
+ *     description: Endpoints de contas a pagar e a receber (financeiro).
+ *
+ * components:
+ *   schemas:
+ *     Conta:
+ *       type: object
+ *       description: Representa uma conta a pagar ou a receber.
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *         tipo:
+ *           type: string
+ *           enum: [PAGAR, RECEBER]
+ *           example: "PAGAR"
+ *         descricao:
+ *           type: string
+ *           example: "Mensalidade escola"
+ *         valor:
+ *           type: number
+ *           example: 750.5
+ *         dataVencimento:
+ *           type: string
+ *           format: date-time
+ *           example: "2025-11-10T00:00:00.000Z"
+ *         recorrencia:
+ *           type: string
+ *           enum: [NENHUMA, MENSAL, SEMANAL, ANUAL]
+ *           example: "MENSAL"
+ *         status:
+ *           type: string
+ *           enum: [ABERTA, PAGA, REN]
+ *           example: "ABERTA"
+ *         categoria:
+ *           type: string
+ *           nullable: true
+ *           example: "Educação"
+ *         observacoes:
+ *           type: string
+ *           nullable: true
+ *           example: "Pagar até dia 10 com desconto"
+ *
+ *     ContaCreateRequest:
+ *       type: object
+ *       required:
+ *         - tipo
+ *         - descricao
+ *         - valor
+ *         - dataVencimento
+ *       properties:
+ *         tipo:
+ *           type: string
+ *           enum: [PAGAR, RECEBER]
+ *           example: "PAGAR"
+ *         descricao:
+ *           type: string
+ *           example: "Mensalidade escola"
+ *         valor:
+ *           type: number
+ *           example: 750.5
+ *         dataVencimento:
+ *           type: string
+ *           format: date
+ *           example: "2025-11-10"
+ *         recorrencia:
+ *           type: string
+ *           enum: [NENHUMA, MENSAL, SEMANAL, ANUAL]
+ *           example: "MENSAL"
+ *         status:
+ *           type: string
+ *           enum: [ABERTA, PAGA, REN]
+ *           example: "ABERTA"
+ *         categoria:
+ *           type: string
+ *           example: "Educação"
+ *         observacoes:
+ *           type: string
+ *           example: "Pagar até dia 10 com desconto"
+ *
+ *     ContaUpdateRequest:
+ *       type: object
+ *       description: Campos opcionais para atualização parcial de uma conta.
+ *       properties:
+ *         tipo:
+ *           type: string
+ *           enum: [PAGAR, RECEBER]
+ *           example: "RECEBER"
+ *         descricao:
+ *           type: string
+ *           example: "Mensalidade atualizada"
+ *         valor:
+ *           type: number
+ *           example: 800.0
+ *         dataVencimento:
+ *           type: string
+ *           format: date
+ *           example: "2025-12-10"
+ *         recorrencia:
+ *           type: string
+ *           enum: [NENHUMA, MENSAL, SEMANAL, ANUAL]
+ *           example: "NENHUMA"
+ *         status:
+ *           type: string
+ *           enum: [ABERTA, PAGA, REN]
+ *           example: "PAGA"
+ *         categoria:
+ *           type: string
+ *           example: "Educação"
+ *         observacoes:
+ *           type: string
+ *           example: "Conta quitada."
+ *
+ *     SimpleErrorResponse:
+ *       type: object
+ *       properties:
+ *         error:
+ *           type: string
+ *           example: "Mensagem de erro descritiva."
+ */
+
 // ===== DEBUG: liste rotas registradas ao subir =====
 process.nextTick(() => {
   const list = router.stack
@@ -38,6 +162,44 @@ function parseDateOr400(value, res, fieldName) {
 }
 
 // ================== POST /conta ==================
+
+/**
+ * @swagger
+ * /api/conta:
+ *   post:
+ *     summary: Cria uma nova conta (a pagar ou a receber)
+ *     description: |
+ *       Cadastra uma conta com tipo, descrição, valor, data de vencimento e campos opcionais como recorrência, status, categoria e observações.
+ *     tags:
+ *       - Contas
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ContaCreateRequest'
+ *     responses:
+ *       201:
+ *         description: Conta criada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Conta'
+ *       400:
+ *         description: Erro de validação (tipo, descrição, valor, datas, etc.)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao cadastrar conta
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.post('/conta', async (req, res) => {
   try {
     const {
@@ -97,6 +259,59 @@ router.post('/conta', async (req, res) => {
 
 // ================== GET /contas ==================
 // Suporta filtros opcionais via query: ?tipo=PAGAR&status=ABERTA&mes=2025-11
+
+/**
+ * @swagger
+ * /api/contas:
+ *   get:
+ *     summary: Lista contas com filtros opcionais
+ *     description: |
+ *       Retorna a lista de contas, podendo filtrar por tipo, status e mês (formato YYYY-MM).
+ *     tags:
+ *       - Contas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: tipo
+ *         schema:
+ *           type: string
+ *           enum: [PAGAR, RECEBER]
+ *         description: Filtra pelo tipo da conta
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [ABERTA, PAGA, REN]
+ *         description: Filtra pelo status da conta
+ *       - in: query
+ *         name: mes
+ *         schema:
+ *           type: string
+ *           example: "2025-11"
+ *         description: Filtra por mês (YYYY-MM) da data de vencimento
+ *     responses:
+ *       200:
+ *         description: Lista de contas encontrada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Conta'
+ *       400:
+ *         description: Parâmetros inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao buscar contas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.get('/contas', async (req, res) => {
   try {
     const { tipo, status, mes } = req.query
@@ -131,6 +346,50 @@ router.get('/contas', async (req, res) => {
 })
 
 // ================== GET /conta/:id ==================
+
+/**
+ * @swagger
+ * /api/conta/{id}:
+ *   get:
+ *     summary: Busca uma conta pelo ID
+ *     tags:
+ *       - Contas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           description: ID da conta (24 caracteres hexadecimais)
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *     responses:
+ *       200:
+ *         description: Conta encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Conta'
+ *       400:
+ *         description: ID inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       404:
+ *         description: Conta não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao buscar conta
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.get('/conta/:id', async (req, res) => {
   const { id } = req.params
 
@@ -153,6 +412,58 @@ router.get('/conta/:id', async (req, res) => {
 })
 
 // ================== PATCH /conta/:id ==================
+
+/**
+ * @swagger
+ * /api/conta/{id}:
+ *   patch:
+ *     summary: Atualiza parcialmente uma conta
+ *     description: |
+ *       Atualiza alguns campos da conta, como tipo, descrição, valor, datas, status, categoria e observações.
+ *     tags:
+ *       - Contas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           description: ID da conta (24 caracteres hexadecimais)
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ContaUpdateRequest'
+ *     responses:
+ *       200:
+ *         description: Conta atualizada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Conta'
+ *       400:
+ *         description: Dados inválidos (ID, tipo, status, valor, etc.)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       404:
+ *         description: Conta não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao atualizar conta
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.patch('/conta/:id', async (req, res) => {
   const { id } = req.params
   const body = req.body
@@ -230,6 +541,46 @@ router.patch('/conta/:id', async (req, res) => {
 })
 
 // ================== DELETE /conta/:id ==================
+
+/**
+ * @swagger
+ * /api/conta/{id}:
+ *   delete:
+ *     summary: Remove uma conta
+ *     tags:
+ *       - Contas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           description: ID da conta (24 caracteres hexadecimais)
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *     responses:
+ *       204:
+ *         description: Conta removida com sucesso (sem corpo de resposta)
+ *       400:
+ *         description: ID inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       404:
+ *         description: Conta não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao excluir conta
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.delete('/conta/:id', async (req, res) => {
   const { id } = req.params
 

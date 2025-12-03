@@ -25,6 +25,204 @@ const parseArrayField = (value) => {
   return [String(value)]
 }
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Alunos
+ *     description: CRUD de alunos, incluindo endereços e anexos (foto/documentos).
+ *
+ * components:
+ *   schemas:
+ *     Endereco:
+ *       type: object
+ *       properties:
+ *         cep:
+ *           type: string
+ *           example: "12345678"
+ *         rua:
+ *           type: string
+ *           example: "Rua das Flores"
+ *         bairro:
+ *           type: string
+ *           example: "Centro"
+ *         numero:
+ *           type: string
+ *           example: "123"
+ *         cidade:
+ *           type: string
+ *           example: "São Paulo"
+ *         estado:
+ *           type: string
+ *           example: "SP"
+ *
+ *     AlunoInput:
+ *       type: object
+ *       required:
+ *         - nome
+ *         - cpf
+ *         - dataNascimento
+ *         - sexo
+ *         - turma
+ *         - dataMatricula
+ *         - enderecos
+ *       properties:
+ *         nome:
+ *           type: string
+ *           example: "João da Silva"
+ *         cpf:
+ *           type: string
+ *           example: "12345678909"
+ *         dataNascimento:
+ *           type: string
+ *           format: date
+ *           example: "2015-01-20"
+ *         sexo:
+ *           type: string
+ *           example: "M"
+ *         responsaveis:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["Maria Silva", "José Silva"]
+ *         alergias:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["Leite", "Amendoim"]
+ *         contatos:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["(11) 99999-9999", "maria@example.com"]
+ *         enderecos:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Endereco'
+ *         status:
+ *           type: string
+ *           enum: [ATIVO, INATIVO]
+ *           example: "ATIVO"
+ *         turma:
+ *           type: string
+ *           enum: [BERCARIO, MATERNAL, PRE_ESCOLAR, EXTRA_CLASSE]
+ *           example: "MATERNAL"
+ *         dataMatricula:
+ *           type: string
+ *           format: date
+ *           example: "2025-02-01"
+ *         observacoes:
+ *           type: string
+ *           example: "Aluno com restrição alimentar."
+ *
+ *     AlunoUpdateInput:
+ *       type: object
+ *       description: Campos opcionais para atualização parcial do aluno.
+ *       properties:
+ *         nome:
+ *           type: string
+ *           example: "João da Silva Atualizado"
+ *         cpf:
+ *           type: string
+ *           example: "12345678909"
+ *         dataNascimento:
+ *           type: string
+ *           format: date
+ *         sexo:
+ *           type: string
+ *           example: "M"
+ *         responsaveis:
+ *           type: array
+ *           items:
+ *             type: string
+ *         alergias:
+ *           type: array
+ *           items:
+ *             type: string
+ *         contatos:
+ *           type: array
+ *           items:
+ *             type: string
+ *         enderecos:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Endereco'
+ *         status:
+ *           type: string
+ *           enum: [ATIVO, INATIVO]
+ *         turma:
+ *           type: string
+ *           enum: [BERCARIO, MATERNAL, PRE_ESCOLAR, EXTRA_CLASSE]
+ *         dataMatricula:
+ *           type: string
+ *           format: date
+ *         observacoes:
+ *           type: string
+ *           example: "Observações atualizadas."
+ *
+ *     AlunoResponse:
+ *       type: object
+ *       description: Representa um aluno com endereços e caminhos de arquivos.
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *         nome:
+ *           type: string
+ *         cpf:
+ *           type: string
+ *         dataNascimento:
+ *           type: string
+ *           format: date-time
+ *         sexo:
+ *           type: string
+ *         responsaveis:
+ *           type: array
+ *           items:
+ *             type: string
+ *         alergias:
+ *           type: array
+ *           items:
+ *             type: string
+ *         contatos:
+ *           type: array
+ *           items:
+ *             type: string
+ *         enderecos:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Endereco'
+ *         status:
+ *           type: string
+ *           enum: [ATIVO, INATIVO]
+ *         turma:
+ *           type: string
+ *         dataMatricula:
+ *           type: string
+ *           format: date-time
+ *         numeroMatricula:
+ *           type: string
+ *           example: "20251234"
+ *         observacoes:
+ *           type: string
+ *           nullable: true
+ *         fotoPath:
+ *           type: string
+ *           nullable: true
+ *           example: "/uploads/alunos/foto-123.png"
+ *         documentos:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["/uploads/alunos/doc-1.pdf", "/uploads/alunos/doc-2.pdf"]
+ *
+ *     SimpleErrorResponse:
+ *       type: object
+ *       properties:
+ *         error:
+ *           type: string
+ *           example: "Mensagem de erro descritiva."
+ */
+
 // ===== CPF: validação completa (back) =====
 const validarCPF = (rawCpf) => {
   let cpf = String(rawCpf || '').replace(/\D/g, '')
@@ -113,10 +311,63 @@ router.use((req, _res, next) => {
 
 // =======================================
 // Cadastrar aluno (POST /api/aluno)
-// - número de matrícula gerado automaticamente
-// - status default = ATIVO (se não enviado)
-// - upload de foto + documentos
 // =======================================
+
+/**
+ * @swagger
+ * /api/aluno:
+ *   post:
+ *     summary: Cadastra um novo aluno
+ *     description: |
+ *       Cria um aluno com geração automática do número de matrícula.
+ *       Suporta envio de foto e documentos em `multipart/form-data`.
+ *     tags:
+ *       - Alunos
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             allOf:
+ *               - $ref: '#/components/schemas/AlunoInput'
+ *               - type: object
+ *                 properties:
+ *                   foto:
+ *                     type: string
+ *                     format: binary
+ *                     description: Arquivo de imagem do aluno (opcional)
+ *                   documentos:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       format: binary
+ *                     description: Arquivos de documentos do aluno (opcional)
+ *     responses:
+ *       201:
+ *         description: Aluno criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AlunoResponse'
+ *       400:
+ *         description: Erro de validação (CPF inválido, campos obrigatórios, etc.)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       409:
+ *         description: Conflito na geração do número de matrícula
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro interno ao cadastrar aluno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.post(
   '/aluno',
   upload.fields([
@@ -281,6 +532,31 @@ router.post(
 // =======================================
 // Listar alunos (GET /api/alunos)
 // =======================================
+
+/**
+ * @swagger
+ * /api/alunos:
+ *   get:
+ *     summary: Lista todos os alunos
+ *     description: Retorna a lista de alunos com seus endereços.
+ *     tags:
+ *       - Alunos
+ *     responses:
+ *       200:
+ *         description: Lista de alunos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/AlunoResponse'
+ *       500:
+ *         description: Erro ao buscar alunos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.get('/alunos', async (_req, res) => {
   try {
     const alunos = await prisma.aluno.findMany({
@@ -297,6 +573,61 @@ router.get('/alunos', async (_req, res) => {
 // =======================================
 // Atualizar aluno (PATCH /api/aluno/:id)
 // =======================================
+
+/**
+ * @swagger
+ * /api/aluno/{id}:
+ *   patch:
+ *     summary: Atualiza parcialmente um aluno
+ *     description: Atualiza campos do aluno e, se enviado, substitui a lista de endereços.
+ *     tags:
+ *       - Alunos
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *         description: ID do aluno (24 caracteres hexadecimais)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AlunoUpdateInput'
+ *     responses:
+ *       200:
+ *         description: Aluno atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AlunoResponse'
+ *       400:
+ *         description: Erro de validação (CPF, datas, endereços, etc.)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       404:
+ *         description: Aluno não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       409:
+ *         description: Conflito de número de matrícula
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao atualizar aluno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.patch('/aluno/:id', async (req, res) => {
   const { id } = req.params
   const data = { ...req.body }
@@ -478,6 +809,39 @@ router.patch('/aluno/:id', async (req, res) => {
 // =======================================
 // Excluir aluno (DELETE /api/aluno/:idAluno)
 // =======================================
+
+/**
+ * @swagger
+ * /api/aluno/{idAluno}:
+ *   delete:
+ *     summary: Exclui um aluno
+ *     description: Remove o aluno e seus endereços associados.
+ *     tags:
+ *       - Alunos
+ *     parameters:
+ *       - in: path
+ *         name: idAluno
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *         description: ID do aluno (24 caracteres hexadecimais)
+ *     responses:
+ *       204:
+ *         description: Aluno excluído com sucesso (sem corpo de resposta)
+ *       404:
+ *         description: Aluno não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao excluir aluno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.delete('/aluno/:idAluno', async (req, res) => {
   const { idAluno } = req.params
   try {
@@ -496,6 +860,48 @@ router.delete('/aluno/:idAluno', async (req, res) => {
 // =======================================
 // Buscar aluno por ID (GET /api/aluno/:id)
 // =======================================
+
+/**
+ * @swagger
+ * /api/aluno/{id}:
+ *   get:
+ *     summary: Busca um aluno pelo ID
+ *     tags:
+ *       - Alunos
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "64f1a3b9c2d4e5f678901234"
+ *         description: ID do aluno (24 caracteres hexadecimais)
+ *     responses:
+ *       200:
+ *         description: Aluno encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AlunoResponse'
+ *       400:
+ *         description: ID inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       404:
+ *         description: Aluno não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ *       500:
+ *         description: Erro ao buscar aluno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SimpleErrorResponse'
+ */
 router.get('/aluno/:id', async (req, res) => {
   const { id } = req.params
 

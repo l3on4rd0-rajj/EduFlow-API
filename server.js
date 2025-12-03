@@ -7,6 +7,9 @@ import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import swaggerJSDoc from 'swagger-jsdoc'
+import swaggerUi from 'swagger-ui-express'
+
 import publicRoutes from './routes/public.js'
 import privateRoutes from './routes/private.js'
 import alunoRoutes from './routes/alunos.js'
@@ -14,6 +17,7 @@ import contasRoutes from './routes/contas.js'
 import auth from './middlewares/auth.js'
 
 const app = express()
+const PORT = process.env.PORT || 3000
 
 // ====== paths auxiliares (ESM) ======
 const __filename = fileURLToPath(import.meta.url)
@@ -43,6 +47,40 @@ app.use(express.static(path.join(__dirname, 'teste-front')))
 // uploads de alunos (fotos/documentos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
+// ====== Swagger (OpenAPI) ======
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'RAJJ API',
+      version: '1.0.0',
+      description: 'Documentação da API RAJJ (alunos, contas, autenticação)',
+    },
+    servers: [
+      {
+        url: `http://localhost:${PORT}`,
+        description: 'Servidor local',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+  },
+  // Arquivos onde ficarão as anotações Swagger (JSDoc)
+  apis: [path.join(__dirname, 'routes', '*.js')], // <-- mais robusto que './routes/*.js'
+}
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions)
+
+// endpoint da documentação
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+
 // ====== Rotas públicas (sem token) ======
 app.use('/', publicRoutes)
 
@@ -65,11 +103,13 @@ app.use('/api', alunoRoutes)
 app.use('/api', auth, contasRoutes)
 
 // ====== Rotas privadas (exemplo) ======
-app.use('/private', auth, privateRoutes)
+// private.js já tem router.use(auth), então aqui não precisa passar de novo.
+// Se quiser deixar a proteção só aqui, é só remover o router.use(auth) de lá.
+app.use('/private', privateRoutes)
 
 // Redirecionar / para a tela de login (opcional)
-app.get('/', (req, res, next) => {
-  // se o arquivo não existir, cai no 404 depois
+// (se publicRoutes não tratar '/', isso aqui cuida)
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'teste-front', 'login.html'))
 })
 
@@ -88,6 +128,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo deu errado!' })
 })
 
-app.listen(3000, () => {
-  console.info('Servidor online na porta 3000', { timestamp: new Date().toISOString() })
+app.listen(PORT, () => {
+  console.info(
+    `Servidor online na porta ${PORT}`,
+    { timestamp: new Date().toISOString() }
+  )
 })
