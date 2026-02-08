@@ -1,0 +1,22 @@
+[2026-02-08T02:54:46.142Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T02:54:50.677Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T02:55:22.177Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T02:55:30.703Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T02:55:38.121Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T02:55:44.249Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T02:55:51.093Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T02:56:30.513Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T03:00:29.855Z] [SUCCESS] Servidor online na porta 3000 
+  Context: {"port":"3000"}
+[2026-02-08T03:00:31.806Z] [SUCCESS] Login realizado com sucesso 
+  Context: {"userId":"6852095bbd7ede2a0a6c3337","email":"thomas@mail.com","ip":"::ffff:127.0.0.1"}
+[2026-02-08T03:01:22.657Z] [SUCCESS] Login realizado com sucesso 
+  Context: {"userId":"6852095bbd7ede2a0a6c3337","email":"thomas@mail.com","ip":"::ffff:127.0.0.1"}

@@ -1,0 +1,8 @@
+[2026-02-08T03:00:31.808Z] [HTTP] POST /login | Status: 200 | Duration: 796ms | User: anonymous | Details: {}
+[2026-02-08T03:01:22.659Z] [HTTP] POST /login | Status: 200 | Duration: 94ms | User: anonymous | Details: {}
+[2026-02-08T03:01:54.281Z] [HTTP] GET /conta/6982c4c8ce29064943f67cf4 | Status: 401 | Duration: 9ms | User: anonymous | Details: {}
+[2026-02-08T03:01:56.721Z] [HTTP] GET /conta/6982c4c8ce29064943f67cf4 | Status: 401 | Duration: 2ms | User: anonymous | Details: {}
+[2026-02-08T03:01:57.078Z] [HTTP] GET /conta/6982c4c8ce29064943f67cf4 | Status: 401 | Duration: 2ms | User: anonymous | Details: {}
+[2026-02-08T03:02:22.663Z] [HTTP] GET /listar-usuarios | Status: 200 | Duration: 1580ms | User: 6852095bbd7ede2a0a6c3337 | Details: {}
+[2026-02-08T03:02:32.213Z] [HTTP] GET /aluno/6982c743ce29064943f67cf5 | Status: 404 | Duration: 406ms | User: anonymous | Details: {"params":{"id":"6982c743ce29064943f67cf5"}}
+[2026-02-08T03:02:37.963Z] [HTTP] GET /alunos/ | Status: 200 | Duration: 188ms | User: anonymous | Details: {}

@@ -1,0 +1,4 @@
+[2026-02-08T03:01:54.279Z] [AUTH] Action: token_verification | Identifier: unknown | Result: failure | Details: {"reason":"jwt expired","path":"/conta/6982c4c8ce29064943f67cf4","method":"GET"}
+[2026-02-08T03:01:56.720Z] [AUTH] Action: token_verification | Identifier: unknown | Result: failure | Details: {"reason":"jwt expired","path":"/conta/6982c4c8ce29064943f67cf4","method":"GET"}
+[2026-02-08T03:01:57.077Z] [AUTH] Action: token_verification | Identifier: unknown | Result: failure | Details: {"reason":"jwt expired","path":"/conta/6982c4c8ce29064943f67cf4","method":"GET"}
+[2026-02-08T03:02:21.084Z] [AUTH] Action: token_verification | Identifier: thomas@mail.com | Result: success | Details: {"path":"/listar-usuarios","method":"GET"}

@@ -1,0 +1,5 @@
+[2026-02-08T03:00:28.646Z] [USER_ACTION] User: anonymous | Action: login_iniciado | Details: {"email":"thomas@mail.com","ip":"::ffff:127.0.0.1"}
+[2026-02-08T03:00:31.012Z] [USER_ACTION] User: anonymous | Action: login_iniciado | Details: {"email":"thomas@mail.com","ip":"::ffff:127.0.0.1"}
+[2026-02-08T03:00:31.807Z] [USER_ACTION] User: 6852095bbd7ede2a0a6c3337 | Action: login_concluido | Details: {"email":"thomas@mail.com","ip":"::ffff:127.0.0.1"}
+[2026-02-08T03:01:22.565Z] [USER_ACTION] User: anonymous | Action: login_iniciado | Details: {"email":"thomas@mail.com","ip":"::ffff:127.0.0.1"}
+[2026-02-08T03:01:22.658Z] [USER_ACTION] User: 6852095bbd7ede2a0a6c3337 | Action: login_concluido | Details: {"email":"thomas@mail.com","ip":"::ffff:127.0.0.1"}

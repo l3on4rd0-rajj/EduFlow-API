@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 import { PrismaClient } from '../generated/prisma/index.js'
 import he from 'he'
+import logger from '../utils/logger.js'
 
 const prisma = new PrismaClient()
 const router = express.Router()
@@ -244,13 +245,17 @@ router.post('/cadastro', async (req, res) => {
   try {
     const { name, email, password } = req.body
 
+    logger.userAction('registro_iniciado', 'anonymous', { email })
+
     if (!name || !email || !password) {
+      logger.warn('Cadastro: Campos obrigatórios faltando', { email })
       return res
         .status(400)
         .json({ message: 'Nome, e-mail e senha são obrigatórios' })
     }
 
     if (!isStrongPassword(password)) {
+      logger.warn('Cadastro: Senha fraca', { email })
       return res.status(400).json({
         message:
           'A senha deve conter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas, números e caracteres especiais',
@@ -268,6 +273,13 @@ router.post('/cadastro', async (req, res) => {
       },
     })
 
+    logger.success('Usuário registrado com sucesso', {
+      userId: userDB.id,
+      email: userDB.email,
+      name: userDB.name,
+    })
+    logger.userAction('registro_concluido', userDB.id, { email: userDB.email })
+
     res.status(201).json({
       id: userDB.id,
       name: userDB.name,
@@ -275,9 +287,10 @@ router.post('/cadastro', async (req, res) => {
       message: 'Usuário criado com sucesso',
     })
   } catch (err) {
-    console.error('Erro no cadastro:', err)
+    logger.error('Erro no cadastro', err, { email: req.body.email })
 
     if (err.code === 'P2002') {
+      logger.warn('Cadastro: E-mail duplicado', { email: req.body.email })
       return res.status(400).json({ message: 'E-mail já está em uso' })
     }
 
@@ -340,7 +353,10 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     const { email, password } = req.body
     const ip = req.ip
 
+    logger.userAction('login_iniciado', 'anonymous', { email, ip })
+
     if (!email || !password) {
+      logger.warn('Login: Campos obrigatórios faltando', { email, ip })
       return res
         .status(400)
         .json({ message: 'E-mail e senha são obrigatórios' })
@@ -351,6 +367,7 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     })
 
     if (!user) {
+      logger.warn('Login: Usuário não encontrado', { email, ip })
       return res.status(401).json({ message: 'Credenciais inválidas' })
     }
 
@@ -365,6 +382,12 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
       failedLoginAttempts.set(ip, {
         count: attempts.count + 1,
         lastAttempt: Date.now(),
+      })
+
+      logger.warn('Login: Senha inválida', {
+        email,
+        ip,
+        tentativasRestantes: MAX_LOGIN_ATTEMPTS - (attempts.count + 1),
       })
 
       return res.status(401).json({
@@ -382,13 +405,20 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
       { expiresIn: '10m' }
     )
 
+    logger.success('Login realizado com sucesso', {
+      userId: user.id,
+      email: user.email,
+      ip,
+    })
+    logger.userAction('login_concluido', user.id, { email: user.email, ip })
+
     res.status(200).json({
       message: 'Login realizado com sucesso',
       token,
       user: { id: user.id, name: user.name, email: user.email },
     })
   } catch (err) {
-    console.error('Erro no login:', err)
+    logger.error('Erro no login', err, { email: req.body.email, ip: req.ip })
     res.status(500).json({ message: 'Erro no servidor, tente novamente' })
   }
 })
@@ -435,7 +465,10 @@ router.post('/esqueci-senha', async (req, res) => {
   try {
     const { email } = req.body
 
+    logger.userAction('esqueci_senha_iniciado', 'anonymous', { email })
+
     if (!email) {
+      logger.warn('Esqueci-senha: E-mail não fornecido')
       return res.status(400).json({ message: 'E-mail é obrigatório' })
     }
 
@@ -445,6 +478,7 @@ router.post('/esqueci-senha', async (req, res) => {
 
     // Para não vazar se o e-mail existe ou não
     if (!user) {
+      logger.info('Esqueci-senha: E-mail não encontrado', { email })
       return res.status(200).json({
         message:
           'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
@@ -459,12 +493,20 @@ router.post('/esqueci-senha', async (req, res) => {
 
     await sendResetPasswordEmail(user, token)
 
+    logger.success('E-mail de redefinição enviado', {
+      userId: user.id,
+      email: user.email,
+    })
+    logger.userAction('esqueci_senha_email_enviado', user.id, {
+      email: user.email,
+    })
+
     return res.status(200).json({
       message:
         'Se o e-mail existir em nossa base, enviaremos um link de redefinição.',
     })
   } catch (err) {
-    console.error('Erro em /esqueci-senha:', err)
+    logger.error('Erro em /esqueci-senha', err, { email: req.body.email })
     return res
       .status(500)
       .json({ message: 'Erro ao processar pedido de redefinição.' })
@@ -513,13 +555,17 @@ router.post('/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body
 
+    logger.userAction('reset_password_iniciado', 'anonymous')
+
     if (!token || !password) {
+      logger.warn('Reset-password: Token ou senha não fornecidos')
       return res
         .status(400)
         .json({ message: 'Token e nova senha são obrigatórios' })
     }
 
     if (!isStrongPassword(password)) {
+      logger.warn('Reset-password: Senha fraca fornecida')
       return res.status(400).json({
         message:
           'A senha deve conter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas, números e caracteres especiais',
@@ -530,11 +576,12 @@ router.post('/reset-password', async (req, res) => {
     try {
       payload = jwt.verify(token, RESET_PASSWORD_SECRET)
     } catch (err) {
-      console.error('Erro ao verificar token de reset:', err)
+      logger.warn('Reset-password: Token inválido ou expirado', { error: err.message })
       return res.status(400).json({ message: 'Token inválido ou expirado' })
     }
 
     if (!payload || payload.type !== 'reset') {
+      logger.warn('Reset-password: Payload inválido')
       return res.status(400).json({ message: 'Token inválido' })
     }
 
@@ -546,11 +593,16 @@ router.post('/reset-password', async (req, res) => {
       data: { password: hashPassword },
     })
 
+    logger.success('Senha redefinida com sucesso', { userId: payload.id })
+    logger.userAction('reset_password_concluido', payload.id, {
+      email: payload.email,
+    })
+
     return res
       .status(200)
       .json({ message: 'Senha redefinida com sucesso. Faça login novamente.' })
   } catch (err) {
-    console.error('Erro em /reset-password:', err)
+    logger.error('Erro em /reset-password', err)
     return res.status(500).json({ message: 'Erro ao redefinir senha.' })
   }
 })

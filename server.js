@@ -15,6 +15,8 @@ import privateRoutes from './routes/private.js'
 import alunoRoutes from './routes/alunos.js'
 import contasRoutes from './routes/contas.js'
 import auth from './middlewares/auth.js'
+import { httpLoggingMiddleware, errorLoggingMiddleware } from './middlewares/logging.js'
+import logger from './utils/logger.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -39,6 +41,9 @@ const limiter = rateLimit({
   legacyHeaders: false,
 })
 app.use(limiter)
+
+// ====== Logging de requisições HTTP ======
+app.use(httpLoggingMiddleware)
 
 // ====== arquivos estáticos (FRONT-END) ======
 // Agora servindo a pasta "teste-front"
@@ -124,13 +129,10 @@ app.use((req, res) => {
 
 // 500
 app.use((err, req, res, next) => {
-  console.error(err.stack)
+  errorLoggingMiddleware(err, req, res, next)
   res.status(500).json({ error: 'Algo deu errado!' })
 })
 
 app.listen(PORT, () => {
-  console.info(
-    `Servidor online na porta ${PORT}`,
-    { timestamp: new Date().toISOString() }
-  )
+  logger.success(`Servidor online na porta ${PORT}`, { port: PORT })
 })
