@@ -1,5 +1,5 @@
 # ---- deps/build stage ----
-FROM node:20-slim AS builder
+FROM node:20.20.0-trixie-slim AS builder
 WORKDIR /app
 
 # OpenSSL (corrige warning do Prisma)
@@ -27,7 +27,7 @@ COPY . .
 RUN npx prisma generate
 
 # ---- runtime stage ----
-FROM node:20-slim AS runtime
+FROM node:20.20.0-trixie-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
