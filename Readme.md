@@ -198,13 +198,6 @@ Para dúvidas, abra uma issue ou contate os mantenedores do projeto.
 
 ---
 
-Se desejar, eu posso também:
-
-- adicionar scripts recomendados em `package.json` automaticamente;
-- incluir um exemplo de `.env.example`;
-- gerar um template de PR/ISSUE para o repositório.
-
-Fim.
 # 📝 API de Autenticação Segura
 
 Esta API oferece um sistema de autenticação robusto com várias camadas de segurança e boas práticas de desenvolvimento.
