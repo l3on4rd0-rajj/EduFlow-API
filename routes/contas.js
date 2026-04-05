@@ -1,8 +1,7 @@
 import express from 'express'
-import { PrismaClient } from '../generated/prisma/index.js'
+import prisma from '../utils/prisma.js'
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
 const isNonEmptyString = (s) => typeof s === 'string' && s.trim().length > 0
 const TIPOS = ['PAGAR', 'RECEBER']

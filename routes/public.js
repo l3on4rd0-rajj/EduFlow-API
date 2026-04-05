@@ -2,12 +2,11 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import nodemailer from 'nodemailer'
-import { PrismaClient } from '../generated/prisma/index.js'
 import he from 'he'
 import logger from '../utils/logger.js'
+import prisma from '../utils/prisma.js'
+import mailer from '../utils/mailer.js'
 
-const prisma = new PrismaClient()
 const router = express.Router()
 
 /**
@@ -134,13 +133,6 @@ const RESET_PASSWORD_SECRET =
 // Config SMTP Gmail:
 // - SMTP_USER  = seuemail@gmail.com
 // - SMTP_PASS  = senha de app gerada no Google (NÃO a senha normal)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-})
 
 // =============================
 // Configurações de segurança
@@ -189,7 +181,7 @@ const sendResetPasswordEmail = async (user, token) => {
   const safeName = he.encode(user.name || '')
   const safeResetLink = he.encode(resetLink)
 
-  await transporter.sendMail({
+  await mailer.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: user.email,
     subject: 'Redefinição de senha - RAJJ',

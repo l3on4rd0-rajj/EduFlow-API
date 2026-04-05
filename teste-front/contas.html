@@ -6,194 +6,274 @@
   <title>Financeiro - Contas a Pagar e Receber - RAJJ</title>
   <link rel="stylesheet" href="assets/css/style.css" />
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     .form-section h1 {
       text-align: center;
-      color: #6a1b9a;
+      background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       margin-bottom: 8px;
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
     }
 
     .subtitle {
       text-align: center;
-      margin-bottom: 20px;
-      color: #555;
-      font-size: 0.95rem;
+      margin-bottom: 24px;
+      color: #666;
+      font-size: 1rem;
+      font-weight: 500;
     }
 
     .finance-layout {
       display: grid;
-      grid-template-columns: 2fr 1.2fr;
-      gap: 20px;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 24px;
     }
 
     .top-actions {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
+      gap: 16px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
     }
 
     .filters {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       flex-wrap: wrap;
       align-items: center;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .filters span {
+      font-weight: 600;
+      color: #555;
     }
 
     .filters select,
     .filters input[type="month"],
     .filters input[type="text"] {
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 0.85rem;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      background-color: #fff;
+    }
+
+    .filters select:hover,
+    .filters input[type="month"]:hover,
+    .filters input[type="text"]:hover {
+      border-color: #6a1b9a;
+      box-shadow: 0 2px 8px rgba(106, 27, 154, 0.1);
+    }
+
+    .filters select:focus,
+    .filters input[type="month"]:focus,
+    .filters input[type="text"]:focus {
+      outline: none;
+      border-color: #6a1b9a;
+      box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.15);
     }
 
     .filters input[type="text"] {
-      min-width: 200px;
+      flex: 1;
+      min-width: 180px;
     }
 
     .btn-primary {
-      background-color: #6a1b9a;
+      background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%);
       color: white;
       border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
+      padding: 11px 20px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: filter 0.2s, transform 0.1s;
+      gap: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(106, 27, 154, 0.3);
+      white-space: nowrap;
     }
 
     .btn-primary:hover {
-      filter: brightness(1.05);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(106, 27, 154, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
     }
 
     .btn-primary span.emoji {
-      font-size: 1rem;
+      font-size: 1.1rem;
     }
 
     .contas-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      max-height: 420px;
+      gap: 12px;
+      max-height: 500px;
       overflow-y: auto;
-      padding-right: 4px;
+      padding-right: 6px;
+    }
+
+    .contas-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .contas-list::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    .contas-list::-webkit-scrollbar-thumb {
+      background: #6a1b9a;
+      border-radius: 10px;
+    }
+
+    .contas-list::-webkit-scrollbar-thumb:hover {
+      background: #5a0f8a;
     }
 
     .conta-card {
-      border-radius: 8px;
-      padding: 10px 12px;
-      background-color: #fafafa;
-      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+      border: 2px solid #e8e8e8;
       display: grid;
-      grid-template-columns: 1.6fr 1.2fr auto;
-      gap: 8px;
+      grid-template-columns: 1.8fr 1.2fr auto;
+      gap: 12px;
       align-items: center;
-      font-size: 0.85rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .conta-card:hover {
+      border-color: #6a1b9a;
+      box-shadow: 0 6px 20px rgba(106, 27, 154, 0.15);
+      transform: translateY(-2px);
+      background: linear-gradient(135deg, #fff9ff 0%, #fff 100%);
     }
 
     .conta-main h3 {
-      margin: 0 0 4px;
+      margin: 0 0 6px;
       color: #6a1b9a;
-      font-size: 1rem;
+      font-size: 1.05rem;
+      font-weight: 600;
     }
 
     .conta-main small {
       display: block;
-      color: #555;
+      color: #888;
+      font-size: 0.85rem;
     }
 
     .conta-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 6px;
     }
 
     .tag {
-      padding: 2px 8px;
-      border-radius: 999px;
+      padding: 4px 10px;
+      border-radius: 12px;
       font-size: 0.75rem;
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
 
     .tag-tipo-pagar {
-      background-color: #ffebee;
-      color: #c62828;
+      background: linear-gradient(135deg, #fff1f1 0%, #ffebee 100%);
+      color: #d32f2f;
     }
 
     .tag-tipo-receber {
-      background-color: #e8f5e9;
-      color: #2e7d32;
+      background: linear-gradient(135deg, #f1f8f4 0%, #e8f5e9 100%);
+      color: #388e3c;
     }
 
     .tag-status-aberta {
-      background-color: #fff3e0;
-      color: #ef6c00;
+      background: linear-gradient(135deg, #fff8f0 0%, #fff3e0 100%);
+      color: #e65100;
     }
 
     .tag-status-vencida {
-      background-color: #ffebee;
-      color: #b71c1c;
+      background: linear-gradient(135deg, #fff1f1 0%, #ffebee 100%);
+      color: #c62828;
     }
 
     .tag-status-vencendo {
-      background-color: #fffde7;
-      color: #f9a825;
+      background: linear-gradient(135deg, #fffef5 0%, #fffde7 100%);
+      color: #f57f17;
     }
 
     .tag-status-paga {
-      background-color: #e8f5e9;
+      background: linear-gradient(135deg, #f1f8f4 0%, #e8f5e9 100%);
       color: #1b5e20;
     }
 
     .tag-status-renegociacao {
-      background-color: #ede7f6;
-      color: #4527a0;
+      background: linear-gradient(135deg, #f3f2f7 0%, #ede7f6 100%);
+      color: #512da8;
     }
 
     .tag-recorrente {
-      background-color: #e3f2fd;
+      background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%);
       color: #1565c0;
     }
 
     .conta-valor {
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: 700;
+      font-size: 1rem;
       text-align: right;
+      color: #2c3e50;
     }
 
     .conta-actions {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       align-items: flex-end;
     }
 
     .btn-mini {
       border: none;
       border-radius: 6px;
-      padding: 4px 8px;
+      padding: 6px 10px;
       font-size: 0.75rem;
+      font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: filter 0.2s, transform 0.1s;
+      transition: all 0.2s ease;
     }
 
     .btn-mini:hover {
-      filter: brightness(1.06);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-mini:active {
+      transform: translateY(0);
     }
 
     .btn-mini span.emoji {
@@ -201,77 +281,92 @@
     }
 
     .btn-editar {
-      background-color: #ffb300;
+      background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
       color: #000;
     }
 
     .btn-pagar {
-      background-color: #2e7d32;
+      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
       color: #fff;
     }
 
     .btn-renegociar {
-      background-color: #5e35b1;
+      background: linear-gradient(135deg, #7e57c2 0%, #5e35b1 100%);
       color: #fff;
     }
 
     .btn-excluir {
-      background-color: #e53935;
+      background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
       color: #fff;
     }
 
-    /* Lado direito: calendário + alertas + formulário */
     .side-panel {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 16px;
     }
 
     .card-box {
-      border-radius: 10px;
-      border: 2px solid #e0e0e0;
-      padding: 10px 12px;
-      background-color: #fafafa;
+      border-radius: 12px;
+      border: 2px solid #e8e8e8;
+      padding: 16px;
+      background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .card-box:hover {
+      border-color: #6a1b9a;
+      box-shadow: 0 6px 20px rgba(106, 27, 154, 0.1);
     }
 
     .card-box h2 {
-      font-size: 0.95rem;
-      margin: 0 0 8px;
+      font-size: 1rem;
+      margin: 0 0 12px;
       color: #6a1b9a;
+      font-weight: 700;
     }
 
     .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.85rem;
-      margin-bottom: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
     }
 
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      font-size: 0.7rem;
+      gap: 6px;
+      font-size: 0.75rem;
       text-align: center;
     }
 
     .calendar-day-name {
-      font-weight: 600;
-      color: #555;
+      font-weight: 700;
+      color: #6a1b9a;
+      padding: 6px 0;
     }
 
     .calendar-day {
       color: #555;
-      font-weight: 500;
+      font-weight: 600;
       position: relative;
-      min-height: 24px;
+      min-height: 28px;
       padding: 4px 0;
       border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .calendar-day:hover {
+      background-color: rgba(106, 27, 154, 0.1);
     }
 
     .calendar-day.today {
-      border: 1px solid #6a1b9a;
+      background: linear-gradient(135deg, rgba(106, 27, 154, 0.2) 0%, rgba(142, 36, 170, 0.15) 100%);
+      border: 2px solid #6a1b9a;
+      font-weight: 700;
     }
 
     .calendar-day.has-contas::after {
@@ -288,40 +383,52 @@
 
     .calendar-day.out-month {
       color: #ccc;
-      opacity: 1;
+      opacity: 0.5;
       cursor: default;
     }
 
     .alert-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      max-height: 150px;
+      gap: 8px;
+      max-height: 160px;
       overflow-y: auto;
+    }
+
+    .alert-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .alert-list::-webkit-scrollbar-thumb {
+      background: #6a1b9a;
+      border-radius: 4px;
     }
 
     .alert-item {
       font-size: 0.8rem;
-      padding: 6px 8px;
-      border-radius: 6px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-weight: 500;
+      border-left: 4px solid;
     }
 
     .alert-vencida {
-      background-color: #ffebee;
+      background: linear-gradient(135deg, #fff1f1 0%, #ffebee 100%);
       color: #b71c1c;
+      border-left-color: #d32f2f;
     }
 
     .alert-vencendo {
-      background-color: #fffde7;
-      color: #f9a825;
+      background: linear-gradient(135deg, #fffef5 0%, #fffde7 100%);
+      color: #f57f17;
+      border-left-color: #fbc02d;
     }
 
-    /* Formulário rápido de conta */
     .quick-form {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      font-size: 0.8rem;
+      gap: 10px;
+      font-size: 0.85rem;
     }
 
     .quick-form-full {
@@ -330,66 +437,201 @@
 
     .quick-form label {
       display: block;
-      margin-bottom: 2px;
-      font-weight: 600;
-      color: #444;
+      margin-bottom: 4px;
+      font-weight: 700;
+      color: #333;
+      font-size: 0.85rem;
     }
 
     .quick-form input,
     .quick-form select,
     .quick-form textarea {
       width: 100%;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 0.8rem;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      font-size: 0.85rem;
       outline: none;
       resize: vertical;
+      transition: all 0.3s ease;
+      background-color: #fff;
     }
 
     .quick-form textarea {
-      min-height: 40px;
+      min-height: 60px;
+      font-family: inherit;
+    }
+
+    .quick-form input:hover,
+    .quick-form select:hover,
+    .quick-form textarea:hover {
+      border-color: #6a1b9a;
+      box-shadow: 0 2px 8px rgba(106, 27, 154, 0.1);
     }
 
     .quick-form input:focus,
     .quick-form select:focus,
     .quick-form textarea:focus {
       border-color: #6a1b9a;
-      box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.15);
+      box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.15);
     }
 
     .quick-form-actions {
       grid-column: 1 / -1;
       display: flex;
       justify-content: flex-end;
-      gap: 8px;
-      margin-top: 4px;
+      gap: 10px;
+      margin-top: 8px;
     }
 
     .btn-secondary {
-      border: 1px solid #bdbdbd;
+      border: 2px solid #ddd;
       background-color: #fff;
       color: #555;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s;
+      transition: all 0.2s ease;
     }
 
     .btn-secondary:hover {
       background-color: #f5f5f5;
+      border-color: #6a1b9a;
+      color: #6a1b9a;
       transform: translateY(-1px);
     }
 
     .empty-text {
-      font-size: 0.8rem;
-      color: #777;
+      font-size: 0.85rem;
+      color: #999;
+      font-style: italic;
+      text-align: center;
+      padding: 20px 10px;
+    }
+
+    .list-summary {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    /* Responsividade */
+    @media (max-width: 1200px) {
+      .finance-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel {
+        flex-direction: row;
+        gap: 16px;
+      }
+
+      .card-box {
+        flex: 1;
+      }
     }
 
     @media (max-width: 900px) {
-      .finance-layout {
+      .form-section h1 {
+        font-size: 1.8rem;
+      }
+
+      .filters {
+        min-width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .filters select,
+      .filters input[type="month"],
+      .filters input[type="text"] {
+        width: 100%;
+      }
+
+      .top-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn-primary {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .conta-card {
         grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .conta-valor {
+        text-align: left;
+      }
+
+      .conta-actions {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+      }
+
+      .side-panel {
+        flex-direction: column;
+      }
+
+      .card-box:nth-child(2),
+      .card-box:nth-child(3) {
+        flex: none;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .form-section {
+        padding: 16px;
+      }
+
+      .finance-layout {
+        gap: 12px;
+      }
+
+      .form-section h1 {
+        font-size: 1.5rem;
+      }
+
+      .subtitle {
+        font-size: 0.9rem;
+      }
+
+      .filters {
+        font-size: 0.8rem;
+      }
+
+      .filters span {
+        display: none;
+      }
+
+      .contas-list {
+        max-height: 350px;
+      }
+
+      .btn-mini {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+      }
+
+      .quick-form {
+        grid-template-columns: 1fr;
+      }
+
+      .calendar-grid {
+        gap: 4px;
+      }
+
+      .calendar-day {
+        min-height: 24px;
+        font-size: 0.7rem;
       }
     }
   </style>

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edu-flow-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edu-flow-api
+  template:
+    metadata:
+      labels:
+        app: edu-flow-api
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: edu-flow-api
+          image: rajjesh/edu-flow-api:1.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000

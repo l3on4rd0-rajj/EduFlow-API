@@ -1,10 +1,9 @@
 // routes/private.js
 import express from 'express'
-import { PrismaClient } from '../generated/prisma/index.js'
 import auth from '../middlewares/auth.js'
+import prisma from '../utils/prisma.js'
 
 const router = express.Router()
-const prisma = new PrismaClient()
 
 /**
  * @swagger
