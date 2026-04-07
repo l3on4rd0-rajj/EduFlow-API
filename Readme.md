@@ -1,4 +1,4 @@
-# 📝 API Node (Autenticação & Gestão)
+# 📝 API Node (Gestão escolar)
 
 Este repositório contém uma API Node.js construída com Express e Prisma, focada em autenticação segura (JWT), gerenciamento de contas e integração com e-mail. Este README foi preparado para equipes de desenvolvimento que precisam configurar, rodar, testar e contribuir com a aplicação.
 
