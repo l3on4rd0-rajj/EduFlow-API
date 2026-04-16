@@ -151,6 +151,7 @@ Isso pode subir o banco de dados e a aplicação dependendo da configuração do
 - `prisma/` — schema do prisma e migrations
 - `generated/` — cliente Prisma compilado
 - `uploads/` — arquivos enviados
+- `docs/logging/` — documentação centralizada do sistema de logging
 
 Documente endpoints importantes, por exemplo:
 
@@ -176,6 +177,11 @@ Boas práticas adicionais recomendadas:
 - Atualmente não há testes automatizados configurados (`package.json` contém apenas `test` padrão).
 - Recomenda-se adicionar uma suíte de testes (Jest, Vitest) e scripts em `package.json`.
 - Adicionar lint (ESLint) e formatação (Prettier) para manter padrões.
+
+## Documentação de logging
+
+- Toda a documentação relacionada a logging foi centralizada em `docs/logging/`.
+- Os principais guias estão em `docs/logging/LOGGING.md`, `docs/logging/LOGGING_QUICK_START.md` e `docs/logging/LOGGING_TROUBLESHOOTING.md`.
 
 ## Contribuição
 
