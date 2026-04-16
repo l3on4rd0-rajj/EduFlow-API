@@ -56,3 +56,10 @@ ehthumbs.db
 # Misc
 .cache/
 .eslintcache
+
+# Browser-saved assets / temporary frontend references
+*.download
+*.zip
+saved_resource.html
+*_files/
+teste-front/assets/images/purple-hd.html
