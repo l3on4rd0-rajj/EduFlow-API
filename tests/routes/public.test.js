@@ -232,3 +232,42 @@ test('POST /esqueci-senha envia email com mailer e jwt mockados', async () => {
     prismaMock.restore()
   }
 })
+
+test('POST /esqueci-senha retorna 200 mesmo quando o envio do email falha', async () => {
+  const prismaMock = mockPrisma({
+    Cluster0: {
+      findUnique: async () => ({
+        id: 'user-11',
+        name: 'Bruna',
+        email: 'bruna@test.com',
+      }),
+    },
+  })
+  const jwtMock = mockJwt({
+    sign: () => 'reset-token',
+  })
+  const mailerMock = mockMailer(async () => {
+    throw new Error('SMTP unavailable')
+  })
+  const loggerMock = mockLogger()
+
+  try {
+    const req = createMockReq({
+      method: 'POST',
+      path: '/esqueci-senha',
+      body: { email: 'bruna@test.com' },
+    })
+    const res = createMockRes()
+
+    await forgotPasswordHandler(req, res)
+
+    assert.equal(res.statusCode, 200)
+    assert.match(res.body.message, /Se o e-mail existir em nossa base/)
+    assert.equal(mailerMock.sendMailCalls.length, 1)
+  } finally {
+    loggerMock.restore()
+    mailerMock.restore()
+    jwtMock.restore()
+    prismaMock.restore()
+  }
+})

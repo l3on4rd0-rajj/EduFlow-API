@@ -1,10 +1,21 @@
-node_modules
+node_modules/
+
 # Keep environment variables out of version control
 .env
+.env.*
+!.env.example
+*.local
+
+# Generated files and local runtime data
 uploads/
-/generated/prisma
+generated/
 dist/
 build/
+tmp/
+temp/
+*.tmp
+*.temp
+*.pid
 
 # Logs
 logs/
@@ -13,9 +24,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-
-# User uploads
-uploads/
 
 # IDE / Editor
 .vscode/
@@ -31,6 +39,7 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+*.tsbuildinfo
 
 # OS files
 .DS_Store
@@ -45,6 +54,5 @@ ehthumbs.db
 .npmrc
 
 # Misc
-.cache
+.cache/
 .eslintcache
-.prettierignore

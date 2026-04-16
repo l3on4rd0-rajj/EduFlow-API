@@ -4,7 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests\\**\\*.test.js",
+    "test:unit": "node --test tests\\middlewares\\*.test.js tests\\utils\\*.test.js",
+    "test:functional": "node --test tests\\routes\\*.test.js"
   },
   "keywords": [],
   "author": "",

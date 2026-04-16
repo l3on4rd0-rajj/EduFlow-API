@@ -483,15 +483,22 @@ router.post('/esqueci-senha', async (req, res) => {
       { expiresIn: '15m' }
     )
 
-    await sendResetPasswordEmail(user, token)
+    try {
+      await sendResetPasswordEmail(user, token)
 
-    logger.success('E-mail de redefinição enviado', {
-      userId: user.id,
-      email: user.email,
-    })
-    logger.userAction('esqueci_senha_email_enviado', user.id, {
-      email: user.email,
-    })
+      logger.success('E-mail de redefinição enviado', {
+        userId: user.id,
+        email: user.email,
+      })
+      logger.userAction('esqueci_senha_email_enviado', user.id, {
+        email: user.email,
+      })
+    } catch (mailError) {
+      logger.error('Falha ao enviar e-mail de redefinição', mailError, {
+        userId: user.id,
+        email: user.email,
+      })
+    }
 
     return res.status(200).json({
       message:
