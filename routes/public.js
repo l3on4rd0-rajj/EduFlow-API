@@ -2,6 +2,7 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import he from 'he'
 import logger from '../utils/logger.js'
 import prisma from '../utils/prisma.js'
@@ -129,6 +130,8 @@ if (!JWT_SECRET) {
 
 const RESET_PASSWORD_SECRET =
   process.env.RESET_PASSWORD_SECRET || `${JWT_SECRET || 'fallback'}_RESET`
+const MFA_CHALLENGE_SECRET =
+  process.env.MFA_CHALLENGE_SECRET || `${JWT_SECRET || 'fallback'}_MFA`
 
 // Config SMTP Gmail:
 // - SMTP_USER  = seuemail@gmail.com
@@ -139,6 +142,8 @@ const RESET_PASSWORD_SECRET =
 // =============================
 const MAX_LOGIN_ATTEMPTS = 5
 const LOGIN_BLOCK_TIME = 5 * 60 * 1000 // 5 minutos em ms
+const MFA_CODE_TTL_MINUTES = Number(process.env.MFA_CODE_TTL_MINUTES || 10)
+const MFA_CODE_LENGTH = Number(process.env.MFA_CODE_LENGTH || 6)
 const failedLoginAttempts = new Map()
 
 // Middleware para verificar tentativas de login por IP
@@ -171,6 +176,24 @@ const isStrongPassword = (password) => {
 }
 
 // Função auxiliar para envio de e-mail de redefinição
+const generateMfaCode = () => {
+  const min = 10 ** Math.max(MFA_CODE_LENGTH - 1, 0)
+  const max = 10 ** MFA_CODE_LENGTH
+  return String(crypto.randomInt(min, max)).padStart(MFA_CODE_LENGTH, '0')
+}
+
+const issueAuthToken = (user) =>
+  jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '10m' })
+
+const issueMfaChallengeToken = (user, codeHash) =>
+  jwt.sign(
+    { id: user.id, email: user.email, type: 'mfa', codeHash },
+    MFA_CHALLENGE_SECRET,
+    { expiresIn: `${MFA_CODE_TTL_MINUTES}m` }
+  )
+
+const isMfaEnabled = () => process.env.MFA_ENABLED === 'true'
+
 const sendResetPasswordEmail = async (user, token) => {
   const appUrl = process.env.APP_URL || 'http://localhost:3000'
   const resetLink = `${appUrl}/reset-password.html?token=${encodeURIComponent(
@@ -191,6 +214,24 @@ const sendResetPasswordEmail = async (user, token) => {
       <p>Clique no link abaixo para criar uma nova senha (válido por 15 minutos):</p>
       <p><a href="${safeResetLink}">${safeResetLink}</a></p>
       <p>Se você não fez essa solicitação, ignore este e-mail.</p>
+    `,
+  })
+}
+
+const sendMfaCodeEmail = async (user, code) => {
+  const safeName = he.encode(user.name || '')
+  const safeCode = he.encode(code)
+
+  await mailer.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: user.email,
+    subject: 'Seu codigo MFA - RAJJ',
+    html: `
+      <p>OlÃ¡, ${safeName}!</p>
+      <p>Seu cÃ³digo de verificaÃ§Ã£o Ã©:</p>
+      <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${safeCode}</p>
+      <p>Ele expira em ${MFA_CODE_TTL_MINUTES} minutos.</p>
+      <p>Se vocÃª nÃ£o tentou entrar agora, troque sua senha.</p>
     `,
   })
 }
@@ -391,11 +432,38 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     // Resetar contador após login bem-sucedido
     failedLoginAttempts.delete(ip)
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '10m' }
-    )
+    if (isMfaEnabled()) {
+      const code = generateMfaCode()
+      const salt = await bcrypt.genSalt(10)
+      const codeHash = await bcrypt.hash(code, salt)
+
+      try {
+        await sendMfaCodeEmail(user, code)
+      } catch (mailError) {
+        logger.error('Falha ao enviar cÃ³digo MFA', mailError, {
+          userId: user.id,
+          email: user.email,
+          ip,
+        })
+
+        return res.status(503).json({
+          message: 'NÃ£o foi possÃ­vel enviar o cÃ³digo MFA. Tente novamente.',
+        })
+      }
+
+      const challengeToken = issueMfaChallengeToken(user, codeHash)
+
+      logger.userAction('mfa_challenge_emitido', user.id, { email: user.email, ip })
+
+      return res.status(202).json({
+        message: 'CÃ³digo de verificaÃ§Ã£o enviado para o e-mail.',
+        requiresMfa: true,
+        challengeToken,
+        expiresInMinutes: MFA_CODE_TTL_MINUTES,
+      })
+    }
+
+    const token = issueAuthToken(user)
 
     logger.success('Login realizado com sucesso', {
       userId: user.id,
@@ -412,6 +480,64 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
   } catch (err) {
     logger.error('Erro no login', err, { email: req.body.email, ip: req.ip })
     res.status(500).json({ message: 'Erro no servidor, tente novamente' })
+  }
+})
+
+router.post('/login/mfa/verify', async (req, res) => {
+  try {
+    const { challengeToken, code } = req.body
+
+    if (!challengeToken || !code) {
+      return res
+        .status(400)
+        .json({ message: 'Token do desafio MFA e cÃ³digo sÃ£o obrigatÃ³rios' })
+    }
+
+    let payload
+    try {
+      payload = jwt.verify(challengeToken, MFA_CHALLENGE_SECRET)
+    } catch (err) {
+      logger.warn('MFA verify: challenge invÃ¡lido ou expirado', {
+        error: err.message,
+      })
+      return res.status(400).json({ message: 'Desafio MFA invÃ¡lido ou expirado' })
+    }
+
+    if (!payload || payload.type !== 'mfa' || !payload.codeHash) {
+      return res.status(400).json({ message: 'Desafio MFA invÃ¡lido' })
+    }
+
+    const user = await prisma.Cluster0.findUnique({
+      where: { id: payload.id },
+    })
+
+    if (!user) {
+      return res.status(400).json({ message: 'UsuÃ¡rio do desafio MFA nÃ£o encontrado' })
+    }
+
+    const isCodeValid = await bcrypt.compare(String(code), payload.codeHash)
+
+    if (!isCodeValid) {
+      return res.status(401).json({
+        message: 'CÃ³digo MFA invÃ¡lido',
+      })
+    }
+
+    const token = issueAuthToken(user)
+
+    logger.success('MFA validado com sucesso', {
+      userId: user.id,
+      email: user.email,
+    })
+
+    return res.status(200).json({
+      message: 'Login realizado com sucesso',
+      token,
+      user: { id: user.id, name: user.name, email: user.email },
+    })
+  } catch (err) {
+    logger.error('Erro na verificaÃ§Ã£o de MFA', err)
+    return res.status(500).json({ message: 'Erro no servidor, tente novamente' })
   }
 })
 

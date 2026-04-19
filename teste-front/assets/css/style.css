@@ -77,6 +77,53 @@ button:hover { box-shadow: 0 10px 24px rgba(156,39,176,.35); transform: translat
 button:active { transform: translateY(-1px); filter: brightness(0.98); }
 button:disabled { opacity: .6; cursor: not-allowed; }
 
+.secondary-action { margin-top: 12px; }
+
+.secondary-button {
+  background: transparent;
+  border: 1px solid #5d6b8f;
+  box-shadow: none;
+}
+
+.secondary-button:hover {
+  box-shadow: none;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.auth-feedback {
+  min-height: 22px;
+  margin-top: 4px;
+  text-align: center;
+  color: #c7cfdf;
+  font-size: 14px;
+}
+
+.auth-feedback.is-error {
+  color: #ff8fa3;
+}
+
+.auth-feedback.is-success {
+  color: #98f5c1;
+}
+
+.mfa-code-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mfa-digit {
+  padding: 14px 0;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.is-hidden {
+  display: none;
+}
+
 /* Link de login */
 .login-link { text-align: center; margin-top: 20px; color: #c7cfdf; }
 .login-link a { color: #bb86fc; text-decoration: none; font-weight: 700; }
@@ -97,5 +144,7 @@ button:disabled { opacity: .6; cursor: not-allowed; }
   .form-section { padding: 26px 20px; }
   .form-header .title h1 { font-size: 26px; }
   input, textarea, select { padding: 10px 12px; }
+  .mfa-code-grid { gap: 8px; }
+  .mfa-digit { font-size: 20px; }
   .radio-group { flex-direction: column; gap: 10px; }
 }

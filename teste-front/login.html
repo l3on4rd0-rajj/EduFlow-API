@@ -10,75 +10,66 @@
 <body>
   <div class="container">
     <div class="image-section">
-      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração de login">
+      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustracao de login">
     </div>
 
     <div class="form-section">
       <form id="login-form">
         <div class="form-header">
-          <h1>LOGIN</h1>
+          <div class="title">
+            <h1>LOGIN</h1>
+          </div>
+          <p class="subtitle" id="login-subtitle">
+            Informe seu e-mail e senha para acessar a plataforma.
+          </p>
         </div>
 
-        <div class="input-group">
+        <div class="input-group" id="email-group">
           <div class="input-box">
             <label for="email">E-mail</label>
             <input id="email" type="email" placeholder="Digite seu e-mail" required>
           </div>
         </div>
 
-        <div class="input-group">
+        <div class="input-group" id="password-group">
           <div class="input-box">
             <label for="senha">Senha</label>
             <input id="senha" type="password" placeholder="Digite sua senha" required>
           </div>
         </div>
 
+        <div class="input-group is-hidden" id="mfa-group">
+          <div class="input-box">
+            <label for="mfa-digit-1">Codigo MFA</label>
+            <div class="mfa-code-grid" id="mfa-code-grid">
+              <input id="mfa-digit-1" class="mfa-digit" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digito 1 do codigo MFA">
+              <input class="mfa-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digito 2 do codigo MFA">
+              <input class="mfa-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digito 3 do codigo MFA">
+              <input class="mfa-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digito 4 do codigo MFA">
+              <input class="mfa-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digito 5 do codigo MFA">
+              <input class="mfa-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digito 6 do codigo MFA">
+            </div>
+          </div>
+        </div>
+
+        <p id="auth-feedback" class="auth-feedback" aria-live="polite"></p>
+
         <div class="continue-button">
           <button type="submit">Entrar</button>
+        </div>
+
+        <div class="secondary-action is-hidden" id="mfa-back-wrapper">
+          <button type="button" id="mfa-back-button" class="secondary-button">Voltar</button>
         </div>
       </form>
 
       <div class="login-link">
-        <p>Não tem conta? <a href="index.html">Cadastre-se</a></p>
+        <p>Nao tem conta? <a href="index.html">Cadastre-se</a></p>
       </div>
     </div>
   </div>
 
-  <script>
-    document.getElementById('login-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const email = document.getElementById('email').value;
-      const senha = document.getElementById('senha').value;
-      const btn = document.querySelector('#login-form button');
-
-      btn.disabled = true;
-      btn.textContent = 'Entrando...';
-
-      try {
-        const response = await fetch('http://localhost:3000/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: senha })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          window.location.href = 'cadastro-aluno.html';
-        } else {
-          alert(data.message || 'Erro no login');
-        }
-      } catch (err) {
-        alert('Erro ao conectar com o servidor');
-        console.error(err);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
-      }
-    });
-  </script>
+  <script src="assets/js/app-core.js"></script>
+  <script src="assets/js/login.js"></script>
 </body>
 </html>

@@ -20,10 +20,27 @@ import logger from './utils/logger.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
+const SERVE_STATIC_FRONTEND = process.env.SERVE_STATIC_FRONTEND !== 'false'
+const FRONTEND_DIR = process.env.FRONTEND_DIR || 'teste-front'
 
 // ====== paths auxiliares (ESM) ======
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error('Origin nÃ£o permitido por CORS'))
+  },
+}
 
 // ====== segurança / básicos ======
 app.use(helmet())
@@ -31,7 +48,7 @@ app.use(express.json({ limit: '10kb' }))
 app.disable('x-powered-by')
 
 // CORS liberado pra testes. Em produção, restrinja o origin.
-app.use(cors({ origin: '*' }))
+app.use(cors(corsOptions))
 
 // Rate limit global
 const limiter = rateLimit({
@@ -47,7 +64,9 @@ app.use(httpLoggingMiddleware)
 
 // ====== arquivos estáticos (FRONT-END) ======
 // Agora servindo a pasta "teste-front"
-app.use(express.static(path.join(__dirname, 'teste-front')))
+if (SERVE_STATIC_FRONTEND) {
+  app.use(express.static(path.join(__dirname, FRONTEND_DIR)))
+}
 
 // uploads de alunos (fotos/documentos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
@@ -114,9 +133,11 @@ app.use('/private', privateRoutes)
 
 // Redirecionar / para a tela de login (opcional)
 // (se publicRoutes não tratar '/', isso aqui cuida)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'teste-front', 'login.html'))
-})
+if (SERVE_STATIC_FRONTEND) {
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, FRONTEND_DIR, 'login.html'))
+  })
+}
 
 // 404 JSON para qualquer coisa não atendida
 app.use((req, res) => {
