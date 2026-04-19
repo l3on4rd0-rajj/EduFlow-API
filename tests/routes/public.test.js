@@ -18,6 +18,7 @@ import {
 const cadastroHandler = getRouteHandler(publicRouter, 'post', '/cadastro')
 const loginLimiterHandler = getRouteHandler(publicRouter, 'post', '/login', 0)
 const loginHandler = getRouteHandler(publicRouter, 'post', '/login', 1)
+const verifyMfaHandler = getRouteHandler(publicRouter, 'post', '/login/mfa/verify')
 const forgotPasswordHandler = getRouteHandler(publicRouter, 'post', '/esqueci-senha')
 const resetPasswordHandler = getRouteHandler(publicRouter, 'post', '/reset-password')
 
@@ -167,6 +168,8 @@ test('POST /login autentica usuario com prisma, bcrypt e jwt mockados', async ()
     sign: () => 'jwt-token-mockado',
   })
   const loggerMock = mockLogger()
+  const previousMfaEnabled = process.env.MFA_ENABLED
+  process.env.MFA_ENABLED = 'false'
 
   try {
     const req = createMockReq({
@@ -187,6 +190,100 @@ test('POST /login autentica usuario com prisma, bcrypt e jwt mockados', async ()
       email: 'thomas@test.com',
     })
     assert.equal(loggerMock.calls.success.length, 1)
+  } finally {
+    loggerMock.restore()
+    jwtMock.restore()
+    bcryptMock.restore()
+    prismaMock.restore()
+  }
+})
+
+test('POST /login retorna desafio MFA quando usuario tem MFA ativo', async () => {
+  const prismaMock = mockPrisma({
+    Cluster0: {
+      findUnique: async ({ where }) => ({
+        id: 'user-12',
+        name: 'Carla',
+        email: where.email,
+        password: 'hashed-password',
+      }),
+    },
+  })
+  const bcryptMock = mockBcrypt({
+    compare: async () => true,
+    genSalt: async () => 'salt-10',
+    hash: async () => 'hashed-code',
+  })
+  const jwtMock = mockJwt({
+    sign: (payload) => (payload?.type === 'mfa' ? 'mfa-challenge' : 'jwt-token'),
+  })
+  const mailerMock = mockMailer()
+  const loggerMock = mockLogger()
+  const previousMfaEnabled = process.env.MFA_ENABLED
+  process.env.MFA_ENABLED = 'true'
+
+  try {
+    const req = createMockReq({
+      method: 'POST',
+      path: '/login',
+      ip: '127.0.0.5',
+      body: { email: 'carla@test.com', password: 'Senha@123' },
+    })
+    const res = createMockRes()
+
+    await loginHandler(req, res)
+
+    assert.equal(res.statusCode, 202)
+    assert.equal(res.body.requiresMfa, true)
+    assert.equal(res.body.challengeToken, 'mfa-challenge')
+    assert.equal(mailerMock.sendMailCalls.length, 1)
+  } finally {
+    process.env.MFA_ENABLED = previousMfaEnabled
+    loggerMock.restore()
+    mailerMock.restore()
+    jwtMock.restore()
+    bcryptMock.restore()
+    prismaMock.restore()
+  }
+})
+
+test('POST /login/mfa/verify conclui login quando codigo esta correto', async () => {
+  const prismaMock = mockPrisma({
+    Cluster0: {
+      findUnique: async () => ({
+        id: 'user-13',
+        name: 'Paula',
+        email: 'paula@test.com',
+        password: 'hashed-password',
+      }),
+    },
+  })
+  const bcryptMock = mockBcrypt({
+    compare: async (value) => value === '123456',
+  })
+  const jwtMock = mockJwt({
+    verify: () => ({ id: 'user-13', email: 'paula@test.com', type: 'mfa', codeHash: 'hashed-code' }),
+    sign: () => 'jwt-token-final',
+  })
+  const loggerMock = mockLogger()
+
+  try {
+    const req = createMockReq({
+      method: 'POST',
+      path: '/login/mfa/verify',
+      body: { challengeToken: 'valid-challenge', code: '123456' },
+    })
+    const res = createMockRes()
+
+    await verifyMfaHandler(req, res)
+
+    assert.equal(res.statusCode, 200)
+    assert.equal(res.body.token, 'jwt-token-final')
+    assert.deepEqual(res.body.user, {
+      id: 'user-13',
+      name: 'Paula',
+      email: 'paula@test.com',
+    })
   } finally {
     loggerMock.restore()
     jwtMock.restore()

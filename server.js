@@ -20,10 +20,41 @@ import logger from './utils/logger.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
+const SERVE_STATIC_FRONTEND = process.env.SERVE_STATIC_FRONTEND !== 'false'
+const DEFAULT_FRONTEND_DIR = 'teste-front'
+const ALLOWED_FRONTEND_DIRS = new Set([DEFAULT_FRONTEND_DIR])
 
 // ====== paths auxiliares (ESM) ======
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const configuredFrontendDir = process.env.FRONTEND_DIR || DEFAULT_FRONTEND_DIR
+const FRONTEND_DIR = ALLOWED_FRONTEND_DIRS.has(configuredFrontendDir)
+  ? configuredFrontendDir
+  : DEFAULT_FRONTEND_DIR
+const FRONTEND_ROOT = path.resolve(__dirname, FRONTEND_DIR)
+const LOGIN_FILE_PATH = path.resolve(FRONTEND_ROOT, 'login.html')
+
+if (configuredFrontendDir !== FRONTEND_DIR) {
+  logger.warn('FRONTEND_DIR inválido; usando diretório padrão', {
+    configuredFrontendDir,
+    frontendDir: FRONTEND_DIR,
+  })
+}
+
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error('Origin nÃ£o permitido por CORS'))
+  },
+}
 
 // ====== segurança / básicos ======
 app.use(helmet())
@@ -31,7 +62,7 @@ app.use(express.json({ limit: '10kb' }))
 app.disable('x-powered-by')
 
 // CORS liberado pra testes. Em produção, restrinja o origin.
-app.use(cors({ origin: '*' }))
+app.use(cors(corsOptions))
 
 // Rate limit global
 const limiter = rateLimit({
@@ -47,7 +78,9 @@ app.use(httpLoggingMiddleware)
 
 // ====== arquivos estáticos (FRONT-END) ======
 // Agora servindo a pasta "teste-front"
-app.use(express.static(path.join(__dirname, 'teste-front')))
+if (SERVE_STATIC_FRONTEND) {
+  app.use(express.static(FRONTEND_ROOT))
+}
 
 // uploads de alunos (fotos/documentos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
@@ -114,9 +147,11 @@ app.use('/private', privateRoutes)
 
 // Redirecionar / para a tela de login (opcional)
 // (se publicRoutes não tratar '/', isso aqui cuida)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'teste-front', 'login.html'))
-})
+if (SERVE_STATIC_FRONTEND) {
+  app.get('/', (_req, res) => {
+    res.sendFile(LOGIN_FILE_PATH)
+  })
+}
 
 // 404 JSON para qualquer coisa não atendida
 app.use((req, res) => {
