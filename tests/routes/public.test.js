@@ -168,6 +168,8 @@ test('POST /login autentica usuario com prisma, bcrypt e jwt mockados', async ()
     sign: () => 'jwt-token-mockado',
   })
   const loggerMock = mockLogger()
+  const previousMfaEnabled = process.env.MFA_ENABLED
+  process.env.MFA_ENABLED = 'false'
 
   try {
     const req = createMockReq({
@@ -213,7 +215,7 @@ test('POST /login retorna desafio MFA quando usuario tem MFA ativo', async () =>
     hash: async () => 'hashed-code',
   })
   const jwtMock = mockJwt({
-    sign: (_payload, secret) => (String(secret).includes('_MFA') ? 'mfa-challenge' : 'jwt-token'),
+    sign: (payload) => (payload?.type === 'mfa' ? 'mfa-challenge' : 'jwt-token'),
   })
   const mailerMock = mockMailer()
   const loggerMock = mockLogger()
