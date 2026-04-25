@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuarios - RAJJ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="users-shell">
+    <header class="users-topbar">
+      <div>
+        <p class="users-kicker">Administracao</p>
+        <h1>Cadastros de usuarios</h1>
+        <p class="subtitle">Veja os dados em blocos completos e edite cada cadastro pelo botao de lapis.</p>
+      </div>
+      <div class="users-topbar-actions">
+        <a class="secondary-button users-link-button" href="cadastro-aluno.html">Cadastro de alunos</a>
+        <button type="button" id="logout-button" class="secondary-button users-link-button">Sair</button>
+      </div>
+    </header>
+
+    <main class="users-stack">
+      <section class="users-panel">
+        <div class="users-panel-header">
+          <div>
+            <h2>Usuarios cadastrados</h2>
+            <p id="users-count" class="subtitle">Carregando...</p>
+          </div>
+          <input id="users-search" type="search" placeholder="Buscar por nome, email ou CPF">
+        </div>
+        <p id="users-feedback" class="auth-feedback" aria-live="polite"></p>
+        <div id="users-list" class="users-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="edit-user-modal" class="users-modal is-hidden" aria-hidden="true">
+    <div class="users-modal-backdrop" data-close-edit-modal></div>
+    <section class="users-modal-card">
+      <div class="users-panel-header">
+        <div>
+          <h2>Editar usuario</h2>
+          <p class="subtitle">Atualize os dados do cadastro selecionado.</p>
+        </div>
+        <button type="button" id="close-edit-modal" class="users-icon-button" aria-label="Fechar edicao">
+          <span aria-hidden="true">X</span>
+        </button>
+      </div>
+
+      <form id="user-edit-form" class="users-form">
+        <div class="register-grid">
+          <div class="input-box">
+            <label for="edit-name">Nome</label>
+            <input id="edit-name" name="name" type="text" placeholder="Nome completo" disabled>
+          </div>
+
+          <div class="input-box">
+            <label for="edit-email">E-mail</label>
+            <input id="edit-email" name="email" type="email" placeholder="E-mail" disabled>
+          </div>
+
+          <div class="input-box">
+            <label for="edit-cpf">CPF</label>
+            <input id="edit-cpf" name="cpf" type="text" placeholder="000.000.000-00" maxlength="14" disabled>
+          </div>
+
+          <div class="input-box">
+            <label for="edit-status">Status</label>
+            <select id="edit-status" name="status" disabled>
+              <option value="ATIVO">ATIVO</option>
+              <option value="INATIVO">INATIVO</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box">
+            <label for="edit-telefones">Telefones</label>
+            <textarea id="edit-telefones" name="telefones" rows="3" placeholder="Um telefone por linha" disabled></textarea>
+          </div>
+        </div>
+
+        <div class="register-grid">
+          <div class="input-box">
+            <label for="edit-cep">CEP</label>
+            <input id="edit-cep" name="cep" type="text" placeholder="00000-000" maxlength="9" disabled>
+          </div>
+
+          <div class="input-box">
+            <label for="edit-numero">Numero</label>
+            <input id="edit-numero" name="numero" type="text" placeholder="Numero" disabled>
+          </div>
+
+          <div class="input-box register-span-2">
+            <label for="edit-rua">Rua</label>
+            <input id="edit-rua" name="rua" type="text" placeholder="Rua" disabled>
+          </div>
+
+          <div class="input-box">
+            <label for="edit-bairro">Bairro</label>
+            <input id="edit-bairro" name="bairro" type="text" placeholder="Bairro" disabled>
+          </div>
+
+          <div class="input-box">
+            <label for="edit-cidade">Cidade</label>
+            <input id="edit-cidade" name="cidade" type="text" placeholder="Cidade" disabled>
+          </div>
+
+          <div class="input-box register-span-2">
+            <label for="edit-estado">Estado</label>
+            <input id="edit-estado" name="estado" type="text" placeholder="UF" maxlength="2" disabled>
+          </div>
+        </div>
+
+        <div class="users-assets">
+          <div>
+            <h3>Foto</h3>
+            <div id="edit-foto-preview" class="users-asset-box">Sem foto</div>
+          </div>
+          <div>
+            <h3>Documentos</h3>
+            <div id="edit-documentos-list" class="users-doc-list">Nenhum documento</div>
+          </div>
+        </div>
+
+        <p id="edit-feedback" class="auth-feedback" aria-live="polite"></p>
+
+        <div class="step-actions">
+          <button type="submit" id="save-user-button" class="inline-button" disabled>Salvar alteracoes</button>
+          <button type="button" id="inactivate-user-button" class="secondary-button inline-button" disabled>Inativar cadastro</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="assets/js/app-core.js"></script>
+  <script src="assets/js/usuarios.js"></script>
+</body>
+</html>

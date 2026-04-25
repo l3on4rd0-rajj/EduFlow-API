@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  output   = "../generated/prisma-client-v3"
 }
 
 datasource db {
@@ -15,10 +15,17 @@ datasource db {
 }
 
 model Cluster0 {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  email   String   @unique
-  name    String
-  password String
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String   @unique
+  name       String
+  password   String
+  cpf        String?
+  endereco   Json?
+  telefones  String[]
+  fotoPath   String?
+  documentos String[]
+  status     String?  @default("ATIVO")
+  criadoEm   DateTime? @default(now())
 }
 
 model Aluno {

@@ -15,12 +15,29 @@ import {
   mockPrisma,
 } from '../mocks/dependencies.js'
 
-const cadastroHandler = getRouteHandler(publicRouter, 'post', '/cadastro')
+const cadastroHandler = getRouteHandler(publicRouter, 'post', '/cadastro', 1)
 const loginLimiterHandler = getRouteHandler(publicRouter, 'post', '/login', 0)
 const loginHandler = getRouteHandler(publicRouter, 'post', '/login', 1)
 const verifyMfaHandler = getRouteHandler(publicRouter, 'post', '/login/mfa/verify')
 const forgotPasswordHandler = getRouteHandler(publicRouter, 'post', '/esqueci-senha')
 const resetPasswordHandler = getRouteHandler(publicRouter, 'post', '/reset-password')
+
+const cadastroBaseBody = {
+  name: 'Maria',
+  email: 'maria@test.com',
+  password: 'Senha@123',
+  confirmPassword: 'Senha@123',
+  cpf: '52998224725',
+  endereco: JSON.stringify({
+    cep: '01001000',
+    rua: 'Praca da Se',
+    bairro: 'Se',
+    numero: '100',
+    cidade: 'Sao Paulo',
+    estado: 'SP',
+  }),
+  telefones: JSON.stringify(['11999998888']),
+}
 
 test('POST /cadastro retorna 400 quando campos obrigatorios nao sao enviados', async () => {
   const req = createMockReq({ method: 'POST', path: '/cadastro', body: { email: 'user@test.com' } })
@@ -29,14 +46,21 @@ test('POST /cadastro retorna 400 quando campos obrigatorios nao sao enviados', a
   await cadastroHandler(req, res)
 
   assert.equal(res.statusCode, 400)
-  assert.deepEqual(res.body, { message: 'Nome, e-mail e senha são obrigatórios' })
+  assert.deepEqual(res.body, {
+    message:
+      'Nome, e-mail, CPF, endereco, senha e confirmacao de senha sao obrigatorios',
+  })
 })
 
 test('POST /cadastro retorna 400 para senha fraca', async () => {
   const req = createMockReq({
     method: 'POST',
     path: '/cadastro',
-    body: { name: 'User', email: 'user@test.com', password: '123456' },
+    body: {
+      ...cadastroBaseBody,
+      password: '123456',
+      confirmPassword: '123456',
+    },
   })
   const res = createMockRes()
 
@@ -44,6 +68,59 @@ test('POST /cadastro retorna 400 para senha fraca', async () => {
 
   assert.equal(res.statusCode, 400)
   assert.match(res.body.message, /A senha deve conter pelo menos 8 caracteres/)
+})
+
+test('POST /cadastro retorna 400 quando confirmacao de senha diverge', async () => {
+  const req = createMockReq({
+    method: 'POST',
+    path: '/cadastro',
+    body: {
+      ...cadastroBaseBody,
+      confirmPassword: 'Senha@321',
+    },
+  })
+  const res = createMockRes()
+
+  await cadastroHandler(req, res)
+
+  assert.equal(res.statusCode, 400)
+  assert.deepEqual(res.body, { message: 'As senhas informadas nao coincidem' })
+})
+
+test('POST /cadastro retorna 400 para CPF invalido', async () => {
+  const req = createMockReq({
+    method: 'POST',
+    path: '/cadastro',
+    body: {
+      ...cadastroBaseBody,
+      cpf: '12345678900',
+    },
+  })
+  const res = createMockRes()
+
+  await cadastroHandler(req, res)
+
+  assert.equal(res.statusCode, 400)
+  assert.deepEqual(res.body, { message: 'CPF invalido' })
+})
+
+test('POST /cadastro retorna 400 sem telefone valido', async () => {
+  const req = createMockReq({
+    method: 'POST',
+    path: '/cadastro',
+    body: {
+      ...cadastroBaseBody,
+      telefones: JSON.stringify(['123']),
+    },
+  })
+  const res = createMockRes()
+
+  await cadastroHandler(req, res)
+
+  assert.equal(res.statusCode, 400)
+  assert.deepEqual(res.body, {
+    message: 'Informe ao menos um telefone brasileiro valido com DDD',
+  })
 })
 
 test('checkLoginAttempts permite seguir quando o IP nao esta bloqueado', () => {
@@ -111,12 +188,19 @@ test('POST /reset-password retorna 400 para senha fraca', async () => {
 test('POST /cadastro cria usuario com bcrypt e prisma mockados', async () => {
   const prismaMock = mockPrisma({
     Cluster0: {
+      findFirst: async () => null,
       create: async ({ data }) => ({
         id: 'user-1',
         name: data.name,
         email: data.email,
         password: data.password,
-      }),
+        cpf: data.cpf,
+        endereco: data.endereco,
+      telefones: data.telefones,
+      fotoPath: data.fotoPath,
+      documentos: data.documentos,
+      status: data.status,
+    }),
     },
   })
   const bcryptMock = mockBcrypt({
@@ -129,7 +213,10 @@ test('POST /cadastro cria usuario com bcrypt e prisma mockados', async () => {
     const req = createMockReq({
       method: 'POST',
       path: '/cadastro',
-      body: { name: 'Maria', email: 'maria@test.com', password: 'Senha@123' },
+      body: {
+        ...cadastroBaseBody,
+        telefones: JSON.stringify(['11999998888', '1133334444']),
+      },
     })
     const res = createMockRes()
 
@@ -140,7 +227,20 @@ test('POST /cadastro cria usuario com bcrypt e prisma mockados', async () => {
       id: 'user-1',
       name: 'Maria',
       email: 'maria@test.com',
-      message: 'Usuário criado com sucesso',
+      cpf: '52998224725',
+      endereco: {
+        cep: '01001000',
+        rua: 'Praca da Se',
+        bairro: 'Se',
+        numero: '100',
+        cidade: 'Sao Paulo',
+        estado: 'SP',
+      },
+      telefones: ['11999998888', '1133334444'],
+      fotoPath: null,
+      documentos: [],
+      status: 'ATIVO',
+      message: 'Usuario criado com sucesso',
     })
     assert.equal(loggerMock.calls.success.length, 1)
   } finally {
@@ -158,6 +258,7 @@ test('POST /login autentica usuario com prisma, bcrypt e jwt mockados', async ()
         name: 'Thomas',
         email: where.email,
         password: 'hashed-password',
+        status: 'ATIVO',
       }),
     },
   })
@@ -188,12 +289,49 @@ test('POST /login autentica usuario com prisma, bcrypt e jwt mockados', async ()
       id: 'user-9',
       name: 'Thomas',
       email: 'thomas@test.com',
+      status: 'ATIVO',
     })
     assert.equal(loggerMock.calls.success.length, 1)
   } finally {
+    process.env.MFA_ENABLED = previousMfaEnabled
     loggerMock.restore()
     jwtMock.restore()
     bcryptMock.restore()
+    prismaMock.restore()
+  }
+})
+
+test('POST /login bloqueia usuario inativo', async () => {
+  const prismaMock = mockPrisma({
+    Cluster0: {
+      findUnique: async ({ where }) => ({
+        id: 'user-10',
+        name: 'Inativo',
+        email: where.email,
+        password: 'hashed-password',
+        status: 'INATIVO',
+      }),
+    },
+  })
+  const loggerMock = mockLogger()
+
+  try {
+    const req = createMockReq({
+      method: 'POST',
+      path: '/login',
+      ip: '127.0.0.44',
+      body: { email: 'inativo@test.com', password: 'Senha@123' },
+    })
+    const res = createMockRes()
+
+    await loginHandler(req, res)
+
+    assert.equal(res.statusCode, 403)
+    assert.deepEqual(res.body, {
+      message: 'Cadastro inativo. Procure um administrador.',
+    })
+  } finally {
+    loggerMock.restore()
     prismaMock.restore()
   }
 })
@@ -206,6 +344,7 @@ test('POST /login retorna desafio MFA quando usuario tem MFA ativo', async () =>
         name: 'Carla',
         email: where.email,
         password: 'hashed-password',
+        status: 'ATIVO',
       }),
     },
   })
@@ -255,6 +394,7 @@ test('POST /login/mfa/verify conclui login quando codigo esta correto', async ()
         name: 'Paula',
         email: 'paula@test.com',
         password: 'hashed-password',
+        status: 'ATIVO',
       }),
     },
   })
@@ -283,6 +423,7 @@ test('POST /login/mfa/verify conclui login quando codigo esta correto', async ()
       id: 'user-13',
       name: 'Paula',
       email: 'paula@test.com',
+      status: 'ATIVO',
     })
   } finally {
     loggerMock.restore()
