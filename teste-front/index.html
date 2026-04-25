@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,93 +7,161 @@
   <title>Cadastro - RAJJ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <div class="container">
-    <!-- Seção da imagem -->
+  <div class="container register-container">
     <div class="image-section">
-      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustração de cadastro">
+      <img src="assets/images/undraw_studying_re_deca.svg" alt="Ilustracao de cadastro">
     </div>
 
-    <!-- Seção do formulário -->
     <div class="form-section">
-      <form id="cadastro-form">
+      <form id="cadastro-form" enctype="multipart/form-data">
         <div class="form-header">
           <div class="title">
             <h1>CADASTRO</h1>
           </div>
+          <p class="subtitle">Preencha por etapas para deixar o cadastro mais leve e organizado.</p>
         </div>
 
-        <div class="input-group">
-          <div class="input-box">
-            <label for="nome">Nome Completo</label>
-            <input id="nome" type="text" name="nome" placeholder="Digite seu nome completo" required>
+        <div class="stepper" aria-label="Etapas do cadastro">
+          <div class="stepper-item is-active" data-step-indicator="0">
+            <span class="stepper-number">1</span>
+            <span class="stepper-label">Dados</span>
+          </div>
+          <div class="stepper-item" data-step-indicator="1">
+            <span class="stepper-number">2</span>
+            <span class="stepper-label">Endereco</span>
+          </div>
+          <div class="stepper-item" data-step-indicator="2">
+            <span class="stepper-number">3</span>
+            <span class="stepper-label">Senha</span>
           </div>
         </div>
 
-        <div class="input-group">
-          <div class="input-box">
-            <label for="email">E-mail</label>
-            <input id="email" type="email" name="email" placeholder="Digite seu e-mail" required>
+        <section class="form-step is-active" data-step="0">
+          <div class="step-copy">
+            <h2>Dados principais</h2>
+            <p>Nome, e-mail, CPF, telefones e anexos opcionais.</p>
           </div>
-        </div>
 
-        <div class="input-group">
-          <div class="input-box">
-            <label for="senha">Senha</label>
-            <input id="senha" type="password" name="password" placeholder="Digite sua senha" required>
+          <div class="input-group register-grid">
+            <div class="input-box">
+              <label for="nome">Nome completo</label>
+              <input id="nome" type="text" name="name" placeholder="Digite o nome completo" required>
+            </div>
+
+            <div class="input-box">
+              <label for="email">E-mail</label>
+              <input id="email" type="email" name="email" placeholder="Digite o e-mail" required>
+            </div>
+
+            <div class="input-box register-span-2">
+              <label for="cpf">CPF</label>
+              <input id="cpf" type="text" name="cpf" placeholder="000.000.000-00" inputmode="numeric" maxlength="14" required>
+            </div>
           </div>
-        </div>
 
-        <div class="continue-button">
-          <button type="submit">Cadastrar</button>
+          <div class="input-group">
+            <div class="inline-header">
+              <label>Telefones</label>
+              <button type="button" id="add-telefone" class="secondary-button inline-button">Adicionar telefone</button>
+            </div>
+            <div id="telefones-wrapper" class="stack-list">
+              <div class="phone-row">
+                <input type="text" name="telefones[]" placeholder="(11) 99999-9999" inputmode="tel" maxlength="15" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="input-group register-grid">
+            <div class="input-box">
+              <label for="foto">Foto do usuario</label>
+              <input id="foto" type="file" name="foto" accept="image/*">
+            </div>
+
+            <div class="input-box">
+              <label for="documentos">Documentos</label>
+              <input id="documentos" type="file" name="documentos" accept=".pdf,image/*" multiple>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-step" data-step="1">
+          <div class="step-copy">
+            <h2>Endereco</h2>
+            <p>O CEP ajuda a preencher rua, bairro, cidade e estado.</p>
+          </div>
+
+          <div class="input-group register-grid">
+            <div class="input-box">
+              <label for="cep">CEP</label>
+              <input id="cep" type="text" name="cep" placeholder="00000-000" inputmode="numeric" maxlength="9" required>
+            </div>
+
+            <div class="input-box">
+              <label for="numero">Numero</label>
+              <input id="numero" type="text" name="numero" placeholder="Numero" required>
+            </div>
+
+            <div class="input-box register-span-2">
+              <label for="rua">Rua</label>
+              <input id="rua" type="text" name="rua" placeholder="Rua ou avenida" required>
+            </div>
+
+            <div class="input-box">
+              <label for="bairro">Bairro</label>
+              <input id="bairro" type="text" name="bairro" placeholder="Bairro" required>
+            </div>
+
+            <div class="input-box">
+              <label for="cidade">Cidade</label>
+              <input id="cidade" type="text" name="cidade" placeholder="Cidade" required>
+            </div>
+
+            <div class="input-box register-span-2">
+              <label for="estado">Estado</label>
+              <input id="estado" type="text" name="estado" placeholder="UF" maxlength="2" required>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-step" data-step="2">
+          <div class="step-copy">
+            <h2>Senha inicial</h2>
+            <p>Defina a senha de acesso e confirme antes de concluir.</p>
+          </div>
+
+          <div class="input-group register-grid">
+            <div class="input-box">
+              <label for="senha">Senha inicial</label>
+              <input id="senha" type="password" name="password" placeholder="Digite a senha inicial" required>
+            </div>
+
+            <div class="input-box">
+              <label for="confirmar-senha">Confirmar senha</label>
+              <input id="confirmar-senha" type="password" name="confirmPassword" placeholder="Repita a senha inicial" required>
+            </div>
+          </div>
+        </section>
+
+        <p id="auth-feedback" class="auth-feedback" aria-live="polite"></p>
+
+        <div class="step-actions">
+          <button type="button" id="prev-step" class="secondary-button inline-button is-hidden">Voltar</button>
+          <button type="button" id="next-step" class="inline-button">Continuar</button>
+          <button type="submit" id="submit-step" class="inline-button is-hidden">Criar conta</button>
         </div>
       </form>
 
       <div class="login-link">
-        <p>Já tem conta? <a href="login.html">Faça login</a></p>
+        <p>Ja tem conta? <a href="login.html">Faca login</a></p>
       </div>
     </div>
   </div>
 
-  <script>
-    document.getElementById('cadastro-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      const nome = document.getElementById('nome').value;
-      const email = document.getElementById('email').value;
-      const senha = document.getElementById('senha').value;
-
-      try {
-        const response = await fetch('http://localhost:3000/cadastro', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: nome,
-            email: email,
-            password: senha
-          })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          alert('Cadastro realizado com sucesso!');
-          document.getElementById('cadastro-form').reset();
-          console.log(data);
-        } else {
-          alert(data.message || 'Erro no cadastro');
-        }
-
-      } catch (error) {
-        alert('Erro ao conectar com o servidor');
-        console.error(error);
-      }
-    });
-  </script>
+  <script src="assets/js/app-core.js"></script>
+  <script src="assets/js/register.js"></script>
 </body>
 </html>

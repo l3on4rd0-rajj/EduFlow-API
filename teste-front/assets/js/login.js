@@ -10,6 +10,7 @@ const mfaBackButton = document.getElementById('mfa-back-button')
 const loginSubtitle = document.getElementById('login-subtitle')
 const emailInput = document.getElementById('email')
 const passwordInput = document.getElementById('senha')
+const FLASH_KEY = 'rajj.flashMessage'
 
 let mfaChallenge = null
 
@@ -59,6 +60,20 @@ const resetToPasswordStep = () => {
   mfaChallenge = null
   setStep('password')
   setLoginFeedback('')
+}
+
+const showFlashMessage = () => {
+  const raw = window.localStorage.getItem(FLASH_KEY)
+  if (!raw) return
+
+  window.localStorage.removeItem(FLASH_KEY)
+
+  try {
+    const flash = JSON.parse(raw)
+    if (flash?.message) {
+      setLoginFeedback(flash.message, flash.type || 'success')
+    }
+  } catch (_) {}
 }
 
 mfaBackButton?.addEventListener('click', () => {
@@ -181,3 +196,4 @@ mfaDigitInputs.forEach((input, index) => {
 })
 
 setStep('password')
+showFlashMessage()

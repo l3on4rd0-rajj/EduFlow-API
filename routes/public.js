@@ -3,6 +3,9 @@ import express from 'express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
 import he from 'he'
 import logger from '../utils/logger.js'
 import prisma from '../utils/prisma.js'
@@ -18,12 +21,38 @@ const router = express.Router()
  *
  * components:
  *   schemas:
+ *     UserAddress:
+ *       type: object
+ *       properties:
+ *         cep:
+ *           type: string
+ *           example: "01001000"
+ *         rua:
+ *           type: string
+ *           example: "Praca da Se"
+ *         bairro:
+ *           type: string
+ *           example: "Se"
+ *         numero:
+ *           type: string
+ *           example: "100"
+ *         cidade:
+ *           type: string
+ *           example: "Sao Paulo"
+ *         estado:
+ *           type: string
+ *           example: "SP"
+ *
  *     AuthRegisterRequest:
  *       type: object
  *       required:
  *         - name
  *         - email
+ *         - cpf
+ *         - endereco
+ *         - telefones
  *         - password
+ *         - confirmPassword
  *       properties:
  *         name:
  *           type: string
@@ -35,6 +64,27 @@ const router = express.Router()
  *         password:
  *           type: string
  *           example: "SenhaForte@123"
+ *         confirmPassword:
+ *           type: string
+ *           example: "SenhaForte@123"
+ *         cpf:
+ *           type: string
+ *           example: "52998224725"
+ *         endereco:
+ *           $ref: '#/components/schemas/UserAddress'
+ *         telefones:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["11999998888", "1133334444"]
+ *         foto:
+ *           type: string
+ *           format: binary
+ *         documentos:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: binary
  *
  *     AuthRegisterResponse:
  *       type: object
@@ -48,6 +98,28 @@ const router = express.Router()
  *         email:
  *           type: string
  *           example: "joao@mail.com"
+ *         cpf:
+ *           type: string
+ *           example: "52998224725"
+ *         endereco:
+ *           $ref: '#/components/schemas/UserAddress'
+ *         telefones:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["11999998888", "1133334444"]
+ *         fotoPath:
+ *           type: string
+ *           nullable: true
+ *           example: "/uploads/usuarios/foto-123.png"
+ *         documentos:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["/uploads/usuarios/documentos-1.pdf"]
+ *         status:
+ *           type: string
+ *           example: "ATIVO"
  *         message:
  *           type: string
  *           example: "Usuário criado com sucesso"
@@ -78,6 +150,9 @@ const router = express.Router()
  *         email:
  *           type: string
  *           example: "thomas@mail.com"
+ *         status:
+ *           type: string
+ *           example: "ATIVO"
  *
  *     AuthLoginResponse:
  *       type: object
@@ -145,6 +220,110 @@ const LOGIN_BLOCK_TIME = 5 * 60 * 1000 // 5 minutos em ms
 const MFA_CODE_TTL_MINUTES = Number(process.env.MFA_CODE_TTL_MINUTES || 10)
 const MFA_CODE_LENGTH = Number(process.env.MFA_CODE_LENGTH || 6)
 const failedLoginAttempts = new Map()
+const CEP_RE = /^\d{8}$/
+const BRAZIL_PHONE_RE = /^(?:[1-9][0-9])(?:9\d{8}|\d{8})$/
+
+const parseArrayField = (value) => {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed)) return parsed
+  } catch (_) {}
+  return [value]
+}
+
+const parseObjectField = (value) => {
+  if (!value) return null
+  if (typeof value === 'object' && !Array.isArray(value)) return value
+  try {
+    const parsed = JSON.parse(value)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed
+    }
+  } catch (_) {}
+  return null
+}
+
+const validarCPF = (rawCpf) => {
+  const cpf = String(rawCpf || '').replace(/\D/g, '')
+  if (!cpf || cpf.length !== 11) return false
+  if (/^(\d)\1{10}$/.test(cpf)) return false
+
+  let soma = 0
+  let resto = 0
+
+  for (let i = 1; i <= 9; i++) {
+    soma += parseInt(cpf.substring(i - 1, i), 10) * (11 - i)
+  }
+  resto = (soma * 10) % 11
+  if (resto === 10 || resto === 11) resto = 0
+  if (resto !== parseInt(cpf.substring(9, 10), 10)) return false
+
+  soma = 0
+  for (let i = 1; i <= 10; i++) {
+    soma += parseInt(cpf.substring(i - 1, i), 10) * (12 - i)
+  }
+  resto = (soma * 10) % 11
+  if (resto === 10 || resto === 11) resto = 0
+  if (resto !== parseInt(cpf.substring(10, 11), 10)) return false
+
+  return true
+}
+
+const normalizarTelefoneBR = (value) => {
+  const digits = String(value || '').replace(/\D/g, '')
+  if (!BRAZIL_PHONE_RE.test(digits)) return null
+  return digits
+}
+
+const normalizarEndereco = (value) => {
+  const endereco = parseObjectField(value)
+  if (!endereco) return { error: 'Endereco invalido' }
+
+  const cep = String(endereco.cep || '').replace(/\D/g, '')
+  const rua = String(endereco.rua || '').trim()
+  const bairro = String(endereco.bairro || '').trim()
+  const numero = String(endereco.numero || '').trim()
+  const cidade = String(endereco.cidade || '').trim()
+  const estado = String(endereco.estado || '').trim().toUpperCase()
+
+  if (!CEP_RE.test(cep)) return { error: 'CEP deve conter 8 digitos' }
+  if (![rua, bairro, numero, cidade, estado].every(Boolean)) {
+    return { error: 'Todos os campos do endereco sao obrigatorios' }
+  }
+
+  return {
+    value: {
+      cep,
+      rua,
+      bairro,
+      numero,
+      cidade,
+      estado,
+    },
+  }
+}
+
+const USER_UPLOAD_DIR = path.resolve('uploads', 'usuarios')
+fs.mkdirSync(USER_UPLOAD_DIR, { recursive: true })
+
+const userStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, USER_UPLOAD_DIR),
+  filename: (_req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
+    const ext = path.extname(file.originalname) || ''
+    cb(null, `${file.fieldname}-${unique}${ext}`)
+  },
+})
+
+const uploadCadastro = multer({
+  storage: userStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 11,
+  },
+})
 
 // Middleware para verificar tentativas de login por IP
 const checkLoginAttempts = (req, res, next) => {
@@ -245,13 +424,13 @@ const sendMfaCodeEmail = async (user, code) => {
  * /cadastro:
  *   post:
  *     summary: Cadastra um novo usuário do sistema
- *     description: Cria um usuário com nome, e-mail e senha forte. A senha é armazenada com hash (bcrypt).
+ *     description: Cria um usuario com CPF, endereco, telefones, anexos opcionais e senha inicial com confirmacao.
  *     tags:
  *       - Autenticação
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             $ref: '#/components/schemas/AuthRegisterRequest'
  *     responses:
@@ -262,7 +441,7 @@ const sendMfaCodeEmail = async (user, code) => {
  *             schema:
  *               $ref: '#/components/schemas/AuthRegisterResponse'
  *       400:
- *         description: Erro de validação (campos obrigatórios ou senha fraca, e-mail duplicado)
+ *         description: Erro de validacao (campos obrigatorios, CPF, telefones, senha ou duplicidade)
  *         content:
  *           application/json:
  *             schema:
@@ -274,62 +453,138 @@ const sendMfaCodeEmail = async (user, code) => {
  *             schema:
  *               $ref: '#/components/schemas/MessageResponse'
  */
-router.post('/cadastro', async (req, res) => {
-  try {
-    const { name, email, password } = req.body
-
-    logger.userAction('registro_iniciado', 'anonymous', { email })
-
-    if (!name || !email || !password) {
-      logger.warn('Cadastro: Campos obrigatórios faltando', { email })
-      return res
-        .status(400)
-        .json({ message: 'Nome, e-mail e senha são obrigatórios' })
-    }
-
-    if (!isStrongPassword(password)) {
-      logger.warn('Cadastro: Senha fraca', { email })
-      return res.status(400).json({
-        message:
-          'A senha deve conter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas, números e caracteres especiais',
-      })
-    }
-
-    const salt = await bcrypt.genSalt(10)
-    const hashPassword = await bcrypt.hash(password, salt)
-
-    const userDB = await prisma.Cluster0.create({
-      data: {
-        email,
+router.post(
+  '/cadastro',
+  uploadCadastro.fields([
+    { name: 'foto', maxCount: 1 },
+    { name: 'documentos', maxCount: 10 },
+  ]),
+  async (req, res) => {
+    try {
+      const {
         name,
-        password: hashPassword,
-      },
-    })
+        email,
+        password,
+        confirmPassword,
+        cpf,
+        endereco,
+        telefones,
+      } = req.body
 
-    logger.success('Usuário registrado com sucesso', {
-      userId: userDB.id,
-      email: userDB.email,
-      name: userDB.name,
-    })
-    logger.userAction('registro_concluido', userDB.id, { email: userDB.email })
+      logger.userAction('registro_iniciado', 'anonymous', { email })
 
-    res.status(201).json({
-      id: userDB.id,
-      name: userDB.name,
-      email: userDB.email,
-      message: 'Usuário criado com sucesso',
-    })
-  } catch (err) {
-    logger.error('Erro no cadastro', err, { email: req.body.email })
+      if (!name || !email || !password || !confirmPassword || !cpf || !endereco) {
+        logger.warn('Cadastro: Campos obrigatorios faltando', { email })
+        return res.status(400).json({
+          message:
+            'Nome, e-mail, CPF, endereco, senha e confirmacao de senha sao obrigatorios',
+        })
+      }
 
-    if (err.code === 'P2002') {
-      logger.warn('Cadastro: E-mail duplicado', { email: req.body.email })
-      return res.status(400).json({ message: 'E-mail já está em uso' })
+      if (password !== confirmPassword) {
+        logger.warn('Cadastro: Confirmacao de senha divergente', { email })
+        return res.status(400).json({ message: 'As senhas informadas nao coincidem' })
+      }
+
+      if (!isStrongPassword(password)) {
+        logger.warn('Cadastro: Senha fraca', { email })
+        return res.status(400).json({
+          message:
+            'A senha deve conter pelo menos 8 caracteres, incluindo maiusculas, minusculas, numeros e caracteres especiais',
+        })
+      }
+
+      if (!validarCPF(cpf)) {
+        logger.warn('Cadastro: CPF invalido', { email })
+        return res.status(400).json({ message: 'CPF invalido' })
+      }
+
+      const telefonesNormalizados = parseArrayField(telefones)
+        .map((telefone) => normalizarTelefoneBR(telefone))
+        .filter(Boolean)
+
+      if (telefonesNormalizados.length === 0) {
+        logger.warn('Cadastro: Nenhum telefone valido informado', { email })
+        return res.status(400).json({
+          message: 'Informe ao menos um telefone brasileiro valido com DDD',
+        })
+      }
+
+      const enderecoNormalizado = normalizarEndereco(endereco)
+      if (enderecoNormalizado.error) {
+        logger.warn('Cadastro: Endereco invalido', {
+          email,
+          detalhe: enderecoNormalizado.error,
+        })
+        return res.status(400).json({ message: enderecoNormalizado.error })
+      }
+
+      const cpfNormalizado = String(cpf).replace(/\D/g, '')
+      const usuarioComCpf = await prisma.Cluster0.findFirst({
+        where: { cpf: cpfNormalizado },
+        select: { id: true },
+      })
+
+      if (usuarioComCpf) {
+        logger.warn('Cadastro: CPF duplicado', { cpf: cpfNormalizado })
+        return res.status(400).json({ message: 'CPF ja esta em uso' })
+      }
+
+      const salt = await bcrypt.genSalt(10)
+      const hashPassword = await bcrypt.hash(password, salt)
+
+      const fotoFile = req.files?.foto?.[0]
+      const documentosFiles = req.files?.documentos || []
+      const fotoPath = fotoFile ? `/uploads/usuarios/${fotoFile.filename}` : null
+      const documentosPaths = documentosFiles.map(
+        (file) => `/uploads/usuarios/${file.filename}`
+      )
+
+      const userDB = await prisma.Cluster0.create({
+        data: {
+          email: String(email).trim().toLowerCase(),
+          name: String(name).trim(),
+          password: hashPassword,
+          cpf: cpfNormalizado,
+          endereco: enderecoNormalizado.value,
+          telefones: telefonesNormalizados,
+          fotoPath,
+          documentos: documentosPaths,
+          status: 'ATIVO',
+        },
+      })
+
+      logger.success('Usuario registrado com sucesso', {
+        userId: userDB.id,
+        email: userDB.email,
+        name: userDB.name,
+      })
+      logger.userAction('registro_concluido', userDB.id, { email: userDB.email })
+
+      res.status(201).json({
+        id: userDB.id,
+        name: userDB.name,
+        email: userDB.email,
+        cpf: userDB.cpf,
+        endereco: userDB.endereco,
+        telefones: userDB.telefones,
+        fotoPath: userDB.fotoPath,
+        documentos: userDB.documentos,
+        status: userDB.status,
+        message: 'Usuario criado com sucesso',
+      })
+    } catch (err) {
+      logger.error('Erro no cadastro', err, { email: req.body.email })
+
+      if (err.code === 'P2002') {
+        logger.warn('Cadastro: E-mail duplicado', { email: req.body.email })
+        return res.status(400).json({ message: 'E-mail ja esta em uso' })
+      }
+
+      res.status(500).json({ message: 'Erro no servidor, tente novamente' })
     }
-
-    res.status(500).json({ message: 'Erro no servidor, tente novamente' })
   }
-})
+)
 
 // =============================
 // LOGIN
@@ -404,6 +659,11 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
       return res.status(401).json({ message: 'Credenciais inválidas' })
     }
 
+    if (user.status && user.status !== 'ATIVO') {
+      logger.warn('Login: Usuario inativo', { email, ip, userId: user.id })
+      return res.status(403).json({ message: 'Cadastro inativo. Procure um administrador.' })
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password)
 
     if (!isPasswordValid) {
@@ -475,7 +735,7 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     res.status(200).json({
       message: 'Login realizado com sucesso',
       token,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, status: user.status },
     })
   } catch (err) {
     logger.error('Erro no login', err, { email: req.body.email, ip: req.ip })
@@ -515,6 +775,10 @@ router.post('/login/mfa/verify', async (req, res) => {
       return res.status(400).json({ message: 'UsuÃ¡rio do desafio MFA nÃ£o encontrado' })
     }
 
+    if (user.status && user.status !== 'ATIVO') {
+      return res.status(403).json({ message: 'Cadastro inativo. Procure um administrador.' })
+    }
+
     const isCodeValid = await bcrypt.compare(String(code), payload.codeHash)
 
     if (!isCodeValid) {
@@ -533,7 +797,7 @@ router.post('/login/mfa/verify', async (req, res) => {
     return res.status(200).json({
       message: 'Login realizado com sucesso',
       token,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, status: user.status },
     })
   } catch (err) {
     logger.error('Erro na verificaÃ§Ã£o de MFA', err)
