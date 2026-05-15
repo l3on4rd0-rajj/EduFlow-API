@@ -1,12 +1,21 @@
 import express from 'express'
 import prisma from '../utils/prisma.js'
+import { requireAdmin } from '../middlewares/auth.js'
 
 const router = express.Router()
+router.use(requireAdmin)
 
 const isNonEmptyString = (s) => typeof s === 'string' && s.trim().length > 0
 const TIPOS = ['PAGAR', 'RECEBER']
 const STATUS = ['ABERTA', 'PAGA', 'REN']
 const RECORRENCIAS = ['NENHUMA', 'MENSAL', 'SEMANAL', 'ANUAL']
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const normalizeEmail = (value) => {
+  if (!isNonEmptyString(value)) return null
+  const email = String(value).trim().toLowerCase()
+  return EMAIL_RE.test(email) ? email : false
+}
 
 /**
  * @swagger
@@ -134,6 +143,7 @@ const RECORRENCIAS = ['NENHUMA', 'MENSAL', 'SEMANAL', 'ANUAL']
 
 // ===== DEBUG: liste rotas registradas ao subir =====
 process.nextTick(() => {
+  if (process.env.DEBUG !== 'true') return
   const list = router.stack
     .map(r => r.route && `${Object.keys(r.route.methods).join(',').toUpperCase()} ${r.route.path}`)
     .filter(Boolean)
@@ -142,7 +152,9 @@ process.nextTick(() => {
 
 // ===== DEBUG: logue tudo que bate neste router =====
 router.use((req, _res, next) => {
-  console.log('[contas router]', req.method, req.path, req.query)
+  if (process.env.DEBUG === 'true') {
+    console.log('[contas router]', req.method, req.path, req.query)
+  }
   next()
 })
 
@@ -209,7 +221,8 @@ router.post('/conta', async (req, res) => {
       recorrencia = 'NENHUMA',
       status = 'ABERTA',
       categoria,
-      observacoes
+      observacoes,
+      emailCobranca
     } = req.body
 
     if (!TIPOS.includes(tipo)) {
@@ -236,6 +249,11 @@ router.post('/conta', async (req, res) => {
       return res.status(400).json({ error: 'Status inválido' })
     }
 
+    const emailNormalizado = normalizeEmail(emailCobranca)
+    if (emailNormalizado === false) {
+      return res.status(400).json({ error: 'E-mail de cobrança inválido' })
+    }
+
     const conta = await prisma.conta.create({
       data: {
         tipo,
@@ -245,7 +263,8 @@ router.post('/conta', async (req, res) => {
         recorrencia,
         status,
         categoria: isNonEmptyString(categoria) ? categoria.trim() : null,
-        observacoes: isNonEmptyString(observacoes) ? observacoes.trim() : null
+        observacoes: isNonEmptyString(observacoes) ? observacoes.trim() : null,
+        emailCobranca: emailNormalizado
       }
     })
 
@@ -524,6 +543,14 @@ router.patch('/conta/:id', async (req, res) => {
       dataUpdate.observacoes = isNonEmptyString(body.observacoes) ? body.observacoes.trim() : null
     }
 
+    if (body.emailCobranca !== undefined) {
+      const emailNormalizado = normalizeEmail(body.emailCobranca)
+      if (emailNormalizado === false) {
+        return res.status(400).json({ error: 'E-mail de cobrança inválido' })
+      }
+      dataUpdate.emailCobranca = emailNormalizado
+    }
+
     const conta = await prisma.conta.update({
       where: { id },
       data: dataUpdate
@@ -600,6 +627,7 @@ router.delete('/conta/:id', async (req, res) => {
 })
 
 process.nextTick(() => {
+  if (process.env.DEBUG !== 'true') return
   const list = router.stack
     .map(r => r.route && `${Object.keys(r.route.methods).join(',').toUpperCase()} ${r.route.path}`)
     .filter(Boolean)

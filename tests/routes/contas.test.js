@@ -52,6 +52,26 @@ test('POST /conta valida valor positivo', async () => {
   assert.deepEqual(res.body, { error: 'Valor deve ser maior que zero' })
 })
 
+test('POST /conta valida e-mail de cobranca', async () => {
+  const req = createMockReq({
+    method: 'POST',
+    path: '/conta',
+    body: {
+      tipo: 'PAGAR',
+      descricao: 'Conta de teste',
+      valor: 100,
+      dataVencimento: '2026-05-10',
+      emailCobranca: 'email-invalido',
+    },
+  })
+  const res = createMockRes()
+
+  await createContaHandler(req, res)
+
+  assert.equal(res.statusCode, 400)
+  assert.deepEqual(res.body, { error: 'E-mail de cobrança inválido' })
+})
+
 test('GET /conta/:id retorna 400 para id invalido', async () => {
   const req = createMockReq({
     method: 'GET',
@@ -119,6 +139,7 @@ test('POST /conta cria registro com prisma mockado', async () => {
         status: 'ABERTA',
         categoria: '  Escola  ',
         observacoes: '  pagar dia 10  ',
+        emailCobranca: '  Financeiro@Example.com  ',
       },
     })
     const res = createMockRes()
@@ -131,6 +152,7 @@ test('POST /conta cria registro com prisma mockado', async () => {
     assert.equal(receivedPayload.valor, 250.5)
     assert.equal(receivedPayload.categoria, 'Escola')
     assert.equal(receivedPayload.observacoes, 'pagar dia 10')
+    assert.equal(receivedPayload.emailCobranca, 'financeiro@example.com')
     assert.ok(receivedPayload.dataVencimento instanceof Date)
   } finally {
     prismaMock.restore()

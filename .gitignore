@@ -1,5 +1,6 @@
 node_modules/
 .worktrees/
+.codesight/
 
 # Keep environment variables out of version control
 .env
@@ -12,6 +13,7 @@ uploads/
 generated/
 dist/
 build/
+docker-images/
 tmp/
 temp/
 *.tmp
@@ -61,6 +63,12 @@ ehthumbs.db
 # Browser-saved assets / temporary frontend references
 *.download
 *.zip
+*.tar
+*.tar.gz
 saved_resource.html
 *_files/
 teste-front/assets/images/purple-hd.html
+
+# Local/security notes that should not be committed
+owaspT10.md
+owapT10.md
