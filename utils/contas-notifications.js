@@ -113,7 +113,15 @@ export const startContaNotificationScheduler = () => {
     }
   }
 
-  const initialDelayMs = Number(process.env.CONTA_EMAIL_INITIAL_DELAY_MS || 10000)
+  const DEFAULT_INITIAL_DELAY_MS = 10000
+  const MIN_INITIAL_DELAY_MS = 0
+  const MAX_INITIAL_DELAY_MS = DAY_MS
+  const rawInitialDelay = process.env.CONTA_EMAIL_INITIAL_DELAY_MS
+  const parsedInitialDelay = Number(rawInitialDelay)
+  const initialDelayMs = Number.isFinite(parsedInitialDelay)
+    ? Math.min(MAX_INITIAL_DELAY_MS, Math.max(MIN_INITIAL_DELAY_MS, parsedInitialDelay))
+    : DEFAULT_INITIAL_DELAY_MS
+
   setTimeout(run, initialDelayMs)
   return setInterval(run, DAY_MS)
 }
