@@ -1,0 +1,35 @@
+name: Dependency review
+
+# Executa a validação sempre que um Pull Request for aberto/atualizado contra a branch main
+on:
+  pull_request:
+    branches:
+      - main
+
+# Permissões necessárias para leitura do repositório e comentários no PR
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency Review Security Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      # Faz checkout do código do repositório para análise dos manifests de dependência
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Analisa dependências adicionadas ou alteradas no PR e falha caso encontre vulnerabilidades High/Critical
+      - name: Dependency Review Analysis
+        uses: actions/dependency-review-action@v4
+        with:
+          # Adiciona um resumo da análise diretamente no Pull Request
+          comment-summary-in-pr: always
+
+          # Falha o workflow se forem encontradas vulnerabilidades High ou Critical
+          fail-on-severity: high
+
+          # Reexecuta a análise automaticamente caso ocorram avisos relacionados a dependências snapshot
+          retry-on-snapshot-warnings: true
