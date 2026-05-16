@@ -11,6 +11,7 @@ node_modules/
 # Generated files and local runtime data
 uploads/
 generated/
+teste-front/
 dist/
 build/
 docker-images/
