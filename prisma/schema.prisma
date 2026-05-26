@@ -65,15 +65,18 @@ model Endereco {
 }
 
 model Conta {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  tipo           String
-  descricao      String
-  valor          Float
-  dataVencimento DateTime
-  recorrencia    String
-  status         String
-  categoria      String?
-  observacoes    String?
-  criadoEm       DateTime @default(now())
-  atualizadoEm   DateTime @updatedAt
+  id                         String    @id @default(auto()) @map("_id") @db.ObjectId
+  tipo                       String
+  descricao                  String
+  valor                      Float
+  dataVencimento             DateTime
+  recorrencia                String
+  status                     String
+  categoria                  String?
+  observacoes                String?
+  emailCobranca              String?
+  lembreteCincoDiasEnviadoEm DateTime?
+  ultimaCobrancaVencidaEm    DateTime?
+  criadoEm                   DateTime  @default(now())
+  atualizadoEm               DateTime  @updatedAt
 }

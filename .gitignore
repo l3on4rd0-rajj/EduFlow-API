@@ -1,5 +1,6 @@
 node_modules/
 .worktrees/
+.codesight/
 
 # Keep environment variables out of version control
 .env
@@ -13,11 +14,18 @@ generated/
 teste-front/
 dist/
 build/
+docker-images/
 tmp/
 temp/
 *.tmp
 *.temp
 *.pid
+
+# Local Docker/Compose overrides and data
+docker-compose.override.yml
+compose.override.yml
+mongo-data/
+.docker/
 
 # Logs
 logs/
@@ -62,6 +70,20 @@ ehthumbs.db
 # Browser-saved assets / temporary frontend references
 *.download
 *.zip
+*.tar
+*.tar.gz
 saved_resource.html
 *_files/
 teste-front/assets/images/purple-hd.html
+
+# Local/security notes that should not be committed
+owaspT10.md
+owapT10.md
+
+# Generated security and dependency reports
+sbom*.json
+*.cdx.json
+trivy*.json
+trivy*.sarif
+grype*.json
+dependency-check-report.*

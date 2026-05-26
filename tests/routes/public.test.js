@@ -18,7 +18,7 @@ import {
 const cadastroHandler = getRouteHandler(publicRouter, 'post', '/cadastro', 1)
 const loginLimiterHandler = getRouteHandler(publicRouter, 'post', '/login', 0)
 const loginHandler = getRouteHandler(publicRouter, 'post', '/login', 1)
-const verifyMfaHandler = getRouteHandler(publicRouter, 'post', '/login/mfa/verify')
+const verifyMfaHandler = getRouteHandler(publicRouter, 'post', '/login/mfa/verify', 1)
 const forgotPasswordHandler = getRouteHandler(publicRouter, 'post', '/esqueci-senha')
 const resetPasswordHandler = getRouteHandler(publicRouter, 'post', '/reset-password')
 

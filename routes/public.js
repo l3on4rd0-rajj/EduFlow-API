@@ -198,15 +198,17 @@ const router = express.Router()
  */
 
 // Segredos
-const JWT_SECRET = process.env.JWT_SECRET
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-jwt-secret')
 if (!JWT_SECRET) {
   console.warn('[WARN] JWT_SECRET não definido no .env')
 }
 
 const RESET_PASSWORD_SECRET =
-  process.env.RESET_PASSWORD_SECRET || `${JWT_SECRET || 'fallback'}_RESET`
+  process.env.RESET_PASSWORD_SECRET || `${JWT_SECRET || 'dev-only'}_RESET`
 const MFA_CHALLENGE_SECRET =
-  process.env.MFA_CHALLENGE_SECRET || `${JWT_SECRET || 'fallback'}_MFA`
+  process.env.MFA_CHALLENGE_SECRET || `${JWT_SECRET || 'dev-only'}_MFA`
 
 // Config SMTP Gmail:
 // - SMTP_USER  = seuemail@gmail.com
@@ -220,8 +222,15 @@ const LOGIN_BLOCK_TIME = 5 * 60 * 1000 // 5 minutos em ms
 const MFA_CODE_TTL_MINUTES = Number(process.env.MFA_CODE_TTL_MINUTES || 10)
 const MFA_CODE_LENGTH = Number(process.env.MFA_CODE_LENGTH || 6)
 const failedLoginAttempts = new Map()
+const failedMfaAttempts = new Map()
 const CEP_RE = /^\d{8}$/
 const BRAZIL_PHONE_RE = /^(?:[1-9][0-9])(?:9\d{8}|\d{8})$/
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+])
 
 const parseArrayField = (value) => {
   if (!value) return []
@@ -319,6 +328,13 @@ const userStorage = multer.diskStorage({
 
 const uploadCadastro = multer({
   storage: userStorage,
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_UPLOAD_MIME_TYPES.has(file.mimetype)) {
+      return cb(new Error('Tipo de arquivo nao permitido'))
+    }
+
+    return cb(null, true)
+  },
   limits: {
     fileSize: 5 * 1024 * 1024,
     files: 11,
@@ -346,6 +362,26 @@ const checkLoginAttempts = (req, res, next) => {
   next()
 }
 
+const checkMfaAttempts = (req, res, next) => {
+  const ip = req.ip
+  const attempts = failedMfaAttempts.get(ip) || { count: 0, lastAttempt: 0 }
+
+  if (attempts.count >= MAX_LOGIN_ATTEMPTS) {
+    const timeRemainingMs = attempts.lastAttempt + LOGIN_BLOCK_TIME - Date.now()
+    const timeRemainingMinutes = Math.ceil(timeRemainingMs / 1000 / 60)
+
+    if (timeRemainingMs > 0) {
+      return res.status(429).json({
+        message: `Muitas tentativas falhas. Tente novamente em ${timeRemainingMinutes} minutos.`,
+      })
+    }
+
+    failedMfaAttempts.delete(ip)
+  }
+
+  return next()
+}
+
 // Validador de senha forte
 const isStrongPassword = (password) => {
   const strongRegex = new RegExp(
@@ -362,7 +398,11 @@ const generateMfaCode = () => {
 }
 
 const issueAuthToken = (user) =>
-  jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '10m' })
+  jwt.sign(
+    { id: user.id, email: user.email, role: user.role, isAdmin: user.isAdmin },
+    JWT_SECRET,
+    { expiresIn: '10m' }
+  )
 
 const issueMfaChallengeToken = (user, codeHash) =>
   jwt.sign(
@@ -397,6 +437,17 @@ const sendResetPasswordEmail = async (user, token) => {
   })
 }
 
+const ensureAuthSecrets = (res, requiredSecrets) => {
+  const missing = requiredSecrets.filter(({ value }) => !value)
+  if (missing.length === 0) return true
+
+  logger.error('Segredos de autenticacao ausentes', null, {
+    missing: missing.map(({ name }) => name),
+  })
+  res.status(500).json({ message: 'Configuracao de autenticacao invalida' })
+  return false
+}
+
 const sendMfaCodeEmail = async (user, code) => {
   const safeName = he.encode(user.name || '')
   const safeCode = he.encode(code)
@@ -406,11 +457,11 @@ const sendMfaCodeEmail = async (user, code) => {
     to: user.email,
     subject: 'Seu codigo MFA - RAJJ',
     html: `
-      <p>OlÃ¡, ${safeName}!</p>
-      <p>Seu cÃ³digo de verificaÃ§Ã£o Ã©:</p>
+      <p>Ola, ${safeName}!</p>
+      <p>Seu codigo de verificacao e:</p>
       <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${safeCode}</p>
       <p>Ele expira em ${MFA_CODE_TTL_MINUTES} minutos.</p>
-      <p>Se vocÃª nÃ£o tentou entrar agora, troque sua senha.</p>
+      <p>Se voce nao tentou entrar agora, troque sua senha.</p>
     `,
   })
 }
@@ -638,6 +689,8 @@ router.post(
  */
 router.post('/login', checkLoginAttempts, async (req, res) => {
   try {
+    if (!ensureAuthSecrets(res, [{ name: 'JWT_SECRET', value: JWT_SECRET }])) return
+
     const { email, password } = req.body
     const ip = req.ip
 
@@ -693,6 +746,12 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
     failedLoginAttempts.delete(ip)
 
     if (isMfaEnabled()) {
+      if (
+        !ensureAuthSecrets(res, [
+          { name: 'MFA_CHALLENGE_SECRET', value: MFA_CHALLENGE_SECRET },
+        ])
+      ) return
+
       const code = generateMfaCode()
       const salt = await bcrypt.genSalt(10)
       const codeHash = await bcrypt.hash(code, salt)
@@ -700,14 +759,14 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
       try {
         await sendMfaCodeEmail(user, code)
       } catch (mailError) {
-        logger.error('Falha ao enviar cÃ³digo MFA', mailError, {
+        logger.error('Falha ao enviar codigo MFA', mailError, {
           userId: user.id,
           email: user.email,
           ip,
         })
 
         return res.status(503).json({
-          message: 'NÃ£o foi possÃ­vel enviar o cÃ³digo MFA. Tente novamente.',
+          message: 'Nao foi possivel enviar o codigo MFA. Tente novamente.',
         })
       }
 
@@ -716,7 +775,7 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
       logger.userAction('mfa_challenge_emitido', user.id, { email: user.email, ip })
 
       return res.status(202).json({
-        message: 'CÃ³digo de verificaÃ§Ã£o enviado para o e-mail.',
+        message: 'Codigo de verificacao enviado para o e-mail.',
         requiresMfa: true,
         challengeToken,
         expiresInMinutes: MFA_CODE_TTL_MINUTES,
@@ -743,14 +802,21 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
   }
 })
 
-router.post('/login/mfa/verify', async (req, res) => {
+router.post('/login/mfa/verify', checkMfaAttempts, async (req, res) => {
   try {
+    if (
+      !ensureAuthSecrets(res, [
+        { name: 'JWT_SECRET', value: JWT_SECRET },
+        { name: 'MFA_CHALLENGE_SECRET', value: MFA_CHALLENGE_SECRET },
+      ])
+    ) return
+
     const { challengeToken, code } = req.body
 
     if (!challengeToken || !code) {
       return res
         .status(400)
-        .json({ message: 'Token do desafio MFA e cÃ³digo sÃ£o obrigatÃ³rios' })
+        .json({ message: 'Token do desafio MFA e codigo sao obrigatorios' })
     }
 
     let payload
@@ -760,11 +826,11 @@ router.post('/login/mfa/verify', async (req, res) => {
       logger.warn('MFA verify: challenge invÃ¡lido ou expirado', {
         error: err.message,
       })
-      return res.status(400).json({ message: 'Desafio MFA invÃ¡lido ou expirado' })
+      return res.status(400).json({ message: 'Desafio MFA invalido ou expirado' })
     }
 
     if (!payload || payload.type !== 'mfa' || !payload.codeHash) {
-      return res.status(400).json({ message: 'Desafio MFA invÃ¡lido' })
+      return res.status(400).json({ message: 'Desafio MFA invalido' })
     }
 
     const user = await prisma.Cluster0.findUnique({
@@ -772,7 +838,7 @@ router.post('/login/mfa/verify', async (req, res) => {
     })
 
     if (!user) {
-      return res.status(400).json({ message: 'UsuÃ¡rio do desafio MFA nÃ£o encontrado' })
+      return res.status(400).json({ message: 'Usuario do desafio MFA nao encontrado' })
     }
 
     if (user.status && user.status !== 'ATIVO') {
@@ -782,11 +848,22 @@ router.post('/login/mfa/verify', async (req, res) => {
     const isCodeValid = await bcrypt.compare(String(code), payload.codeHash)
 
     if (!isCodeValid) {
+      const attempts = failedMfaAttempts.get(req.ip) || {
+        count: 0,
+        lastAttempt: 0,
+      }
+
+      failedMfaAttempts.set(req.ip, {
+        count: attempts.count + 1,
+        lastAttempt: Date.now(),
+      })
+
       return res.status(401).json({
-        message: 'CÃ³digo MFA invÃ¡lido',
+        message: 'Codigo MFA invalido',
       })
     }
 
+    failedMfaAttempts.delete(req.ip)
     const token = issueAuthToken(user)
 
     logger.success('MFA validado com sucesso', {
@@ -800,7 +877,7 @@ router.post('/login/mfa/verify', async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, status: user.status },
     })
   } catch (err) {
-    logger.error('Erro na verificaÃ§Ã£o de MFA', err)
+    logger.error('Erro na verificação de MFA', err)
     return res.status(500).json({ message: 'Erro no servidor, tente novamente' })
   }
 })
@@ -845,6 +922,12 @@ router.post('/login/mfa/verify', async (req, res) => {
  */
 router.post('/esqueci-senha', async (req, res) => {
   try {
+    if (
+      !ensureAuthSecrets(res, [
+        { name: 'RESET_PASSWORD_SECRET', value: RESET_PASSWORD_SECRET },
+      ])
+    ) return
+
     const { email } = req.body
 
     logger.userAction('esqueci_senha_iniciado', 'anonymous', { email })
@@ -942,6 +1025,12 @@ router.post('/esqueci-senha', async (req, res) => {
  */
 router.post('/reset-password', async (req, res) => {
   try {
+    if (
+      !ensureAuthSecrets(res, [
+        { name: 'RESET_PASSWORD_SECRET', value: RESET_PASSWORD_SECRET },
+      ])
+    ) return
+
     const { token, password } = req.body
 
     logger.userAction('reset_password_iniciado', 'anonymous')

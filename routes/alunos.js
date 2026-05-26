@@ -4,8 +4,10 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import prisma from '../utils/prisma.js'
+import { requireAdmin } from '../middlewares/auth.js'
 
 const router = express.Router()
+router.use(requireAdmin)
 
 // ====== CONSTANTES / HELPERS ======
 const isNonEmptyString = (s) => typeof s === 'string' && s.trim().length > 0
@@ -13,6 +15,26 @@ const CEP_RE = /^\d{8}$/
 const STATUS_VALUES = ['ATIVO', 'INATIVO']
 const TURMA_VALUES = ['BERCARIO', 'MATERNAL', 'PRE_ESCOLAR', 'EXTRA_CLASSE']
 const MAX_OBS_LEN = 500
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+])
+const ALLOWED_UPDATE_FIELDS = new Set([
+  'nome',
+  'cpf',
+  'dataNascimento',
+  'sexo',
+  'responsaveis',
+  'alergias',
+  'contatos',
+  'enderecos',
+  'status',
+  'turma',
+  'dataMatricula',
+  'observacoes',
+])
 
 const parseArrayField = (value) => {
   if (!value) return []
@@ -270,6 +292,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_UPLOAD_MIME_TYPES.has(file.mimetype)) {
+      return cb(new Error('Tipo de arquivo nao permitido'))
+    }
+
+    return cb(null, true)
+  },
   limits: {
     fileSize: 5 * 1024 * 1024,
     files: 10
@@ -296,6 +325,7 @@ async function generateNumeroMatricula() {
 
 // ===== DEBUG: liste rotas registradas ao subir =====
 process.nextTick(() => {
+  if (process.env.DEBUG !== 'true') return
   const list = router.stack
     .map(r => r.route && `${Object.keys(r.route.methods).join(',').toUpperCase()} ${r.route.path}`)
     .filter(Boolean)
@@ -304,7 +334,9 @@ process.nextTick(() => {
 
 // ===== DEBUG: logue tudo que bate neste router =====
 router.use((req, _res, next) => {
-  console.log('[alunos router]', req.method, req.path)
+  if (process.env.DEBUG === 'true') {
+    console.log('[alunos router]', req.method, req.path)
+  }
   next()
 })
 
@@ -629,8 +661,19 @@ router.get('/alunos', async (_req, res) => {
  */
 router.patch('/aluno/:id', async (req, res) => {
   const { id } = req.params
+  const unknownFields = Object.keys(req.body).filter(
+    (field) => !ALLOWED_UPDATE_FIELDS.has(field)
+  )
+  if (unknownFields.length > 0) {
+    return res.status(400).json({
+      error: `Campos nao permitidos: ${unknownFields.join(', ')}`,
+    })
+  }
+
   const data = { ...req.body }
-  console.log('[PATCH /aluno/:id] payload:', JSON.stringify(data, null, 2))
+  if (process.env.DEBUG === 'true') {
+    console.log('[PATCH /aluno/:id] payload:', JSON.stringify(data, null, 2))
+  }
 
   try {
     // não permitir edição de numeroMatricula

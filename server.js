@@ -17,12 +17,30 @@ import contasRoutes from './routes/contas.js'
 import auth from './middlewares/auth.js'
 import { httpLoggingMiddleware, errorLoggingMiddleware } from './middlewares/logging.js'
 import logger from './utils/logger.js'
+import { startContaNotificationScheduler } from './utils/contas-notifications.js'
 
 const app = express()
+app.set('trust proxy', 1)
 const PORT = process.env.PORT || 3000
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const SERVE_STATIC_FRONTEND = process.env.SERVE_STATIC_FRONTEND !== 'false'
 const DEFAULT_FRONTEND_DIR = 'teste-front'
 const ALLOWED_FRONTEND_DIRS = new Set([DEFAULT_FRONTEND_DIR])
+
+const requiredProductionEnv = ['JWT_SECRET', 'RESET_PASSWORD_SECRET', 'MFA_CHALLENGE_SECRET']
+if (IS_PRODUCTION) {
+  const missingEnv = requiredProductionEnv.filter((key) => !process.env[key])
+  if (missingEnv.length > 0) {
+    throw new Error(`Variaveis obrigatorias ausentes em producao: ${missingEnv.join(', ')}`)
+  }
+
+  if (
+    process.env.SMTP_TLS_REJECT_UNAUTHORIZED === 'false' &&
+    process.env.ALLOW_INSECURE_SMTP_TLS !== 'true'
+  ) {
+    throw new Error('SMTP_TLS_REJECT_UNAUTHORIZED=false nao e permitido em producao')
+  }
+}
 
 // ====== paths auxiliares (ESM) ======
 const __filename = fileURLToPath(import.meta.url)
@@ -83,7 +101,14 @@ if (SERVE_STATIC_FRONTEND) {
 }
 
 // uploads de alunos (fotos/documentos)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+app.use(
+  '/uploads',
+  auth,
+  express.static(path.join(__dirname, 'uploads'), {
+    dotfiles: 'deny',
+    index: false,
+  })
+)
 
 // ====== Swagger (OpenAPI) ======
 const swaggerOptions = {
@@ -117,25 +142,27 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJSDoc(swaggerOptions)
 
 // endpoint da documentação
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+if (!IS_PRODUCTION || process.env.EXPOSE_API_DOCS === 'true') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+}
 
 // ====== Rotas públicas (sem token) ======
 app.use('/', publicRoutes)
 
 // ====== Debug para /api ======
 app.use('/api', (req, _res, next) => {
-  console.log(
-    '[API hit]',
-    req.method,
-    req.originalUrl,
-    'Auth:',
-    req.headers.authorization || '---'
-  )
+  if (process.env.DEBUG === 'true') {
+    logger.debug('API hit', {
+      method: req.method,
+      originalUrl: req.originalUrl,
+      authenticated: Boolean(req.headers.authorization),
+    })
+  }
   next()
 })
 
 // ====== Rotas de alunos (pode colocar auth aqui se quiser) ======
-app.use('/api', alunoRoutes)
+app.use('/api', auth, alunoRoutes)
 
 // ====== Rotas de contas protegidas por token ======
 app.use('/api', auth, contasRoutes)
@@ -170,4 +197,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   logger.success(`Servidor online na porta ${PORT}`, { port: PORT })
+  startContaNotificationScheduler()
 })

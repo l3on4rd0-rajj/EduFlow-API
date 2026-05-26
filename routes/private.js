@@ -1,6 +1,6 @@
 // routes/private.js
 import express from 'express'
-import auth from '../middlewares/auth.js'
+import auth, { requireAdmin } from '../middlewares/auth.js'
 import prisma from '../utils/prisma.js'
 
 const router = express.Router()
@@ -204,6 +204,7 @@ const userSelect = {
  *           $ref: '#/components/schemas/PrivateUser'
  */
 router.use(auth)
+router.use(requireAdmin)
 
 /**
  * @swagger
