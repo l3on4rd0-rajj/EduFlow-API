@@ -21,6 +21,12 @@ temp/
 *.temp
 *.pid
 
+# Local Docker/Compose overrides and data
+docker-compose.override.yml
+compose.override.yml
+mongo-data/
+.docker/
+
 # Logs
 logs/
 *.log
@@ -73,3 +79,11 @@ teste-front/assets/images/purple-hd.html
 # Local/security notes that should not be committed
 owaspT10.md
 owapT10.md
+
+# Generated security and dependency reports
+sbom*.json
+*.cdx.json
+trivy*.json
+trivy*.sarif
+grype*.json
+dependency-check-report.*

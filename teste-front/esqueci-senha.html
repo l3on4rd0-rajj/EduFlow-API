@@ -59,13 +59,20 @@
     <script>
       const form = document.getElementById('forgotForm');
       const msg = document.getElementById('msg');
+      const apiBaseUrl = window.location.port && !['3000', '8080'].includes(window.location.port)
+        ? `${window.location.protocol}//${window.location.hostname}:3000`
+        : '';
+
+      function buildApiUrl(path) {
+        return `${apiBaseUrl}${path}`;
+      }
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value;
 
         try {
-          const resp = await fetch('http://localhost:3000/esqueci-senha', {
+          const resp = await fetch(buildApiUrl('/esqueci-senha'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email }),

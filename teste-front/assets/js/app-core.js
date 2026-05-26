@@ -10,6 +10,7 @@
 
   const trimTrailingSlash = (value) => value.replace(/\/+$/, '')
   const DEFAULT_API_PORT = '3000'
+  const NGINX_FRONTEND_PORT = '8080'
 
   const getConfiguredApiBaseUrl = () => {
     const fromMeta = getMetaContent('api-base-url')
@@ -23,7 +24,7 @@
 
     const { protocol, hostname, port } = window.location
 
-    if (port && port !== DEFAULT_API_PORT) {
+    if (port && ![DEFAULT_API_PORT, NGINX_FRONTEND_PORT].includes(port)) {
       return `${protocol}//${hostname}:${DEFAULT_API_PORT}`
     }
 

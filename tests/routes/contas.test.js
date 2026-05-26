@@ -72,6 +72,26 @@ test('POST /conta valida e-mail de cobranca', async () => {
   assert.deepEqual(res.body, { error: 'E-mail de cobrança inválido' })
 })
 
+test('POST /conta rejeita e-mail malicioso sem regex vulneravel', async () => {
+  const req = createMockReq({
+    method: 'POST',
+    path: '/conta',
+    body: {
+      tipo: 'PAGAR',
+      descricao: 'Conta de teste',
+      valor: 100,
+      dataVencimento: '2026-05-10',
+      emailCobranca: `!@${'!'.repeat(5000)}`,
+    },
+  })
+  const res = createMockRes()
+
+  await createContaHandler(req, res)
+
+  assert.equal(res.statusCode, 400)
+  assert.deepEqual(res.body, { error: 'E-mail de cobrança inválido' })
+})
+
 test('GET /conta/:id retorna 400 para id invalido', async () => {
   const req = createMockReq({
     method: 'GET',

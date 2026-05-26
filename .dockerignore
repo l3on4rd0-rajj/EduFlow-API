@@ -28,5 +28,11 @@ docker-images
 *.zip
 *.tar
 *.tar.gz
+sbom*.json
+*.cdx.json
+trivy*.json
+trivy*.sarif
+grype*.json
+dependency-check-report.*
 owaspT10.md
 owapT10.md

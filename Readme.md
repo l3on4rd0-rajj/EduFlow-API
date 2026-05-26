@@ -49,9 +49,9 @@ DATABASE_URL=mongodb://mongo:27017/willdb
 JWT_SECRET=change_this_jwt_secret
 RESET_PASSWORD_SECRET=change_this_reset_secret
 MFA_CHALLENGE_SECRET=change_this_mfa_secret
-APP_URL=http://localhost:3000
-CORS_ALLOWED_ORIGINS=http://localhost:3000
-SERVE_STATIC_FRONTEND=true
+APP_URL=http://localhost:8080
+CORS_ALLOWED_ORIGINS=http://localhost:8080
+SERVE_STATIC_FRONTEND=false
 FRONTEND_DIR=teste-front
 EXPOSE_API_DOCS=false
 SMTP_HOST=smtp.example.com
@@ -65,6 +65,8 @@ CONTA_EMAIL_NOTIFICATIONS_ENABLED=false
 ```
 
 Em producao, `JWT_SECRET`, `RESET_PASSWORD_SECRET` e `MFA_CHALLENGE_SECRET` sao obrigatorias. Tambem nao use `SMTP_TLS_REJECT_UNAUTHORIZED=false` em producao.
+
+Em ambiente local com Docker, se a rede ou antivirus interceptar TLS do SMTP, use `SMTP_TLS_REJECT_UNAUTHORIZED=false` junto de `ALLOW_INSECURE_SMTP_TLS=true` apenas para desenvolvimento.
 
 ## Instalacao e execucao local
 
@@ -82,7 +84,18 @@ A API sobe por padrao em `http://localhost:3000`.
 docker compose up --build
 ```
 
-O `docker-compose.yml` inicia a API e um MongoDB com replica set local. A API usa o arquivo `.env`, que deve existir localmente e nao deve ser commitado.
+Se o plugin Compose v2 nao estiver disponivel, use:
+
+```bash
+docker-compose up --build
+```
+
+O `docker-compose.yml` inicia a API, um MongoDB com replica set local e um Nginx para servir o frontend estatico de `teste-front/`.
+
+- Frontend via Nginx: `http://localhost:8080`
+- API Node direta: `http://localhost:3000`
+
+A API usa o arquivo `.env`, que deve existir localmente e nao deve ser commitado. Para usar o frontend pelo Nginx, configure `APP_URL=http://localhost:8080`, `CORS_ALLOWED_ORIGINS=http://localhost:8080`, `SERVE_STATIC_FRONTEND=false`, `JWT_SECRET`, `RESET_PASSWORD_SECRET` e `MFA_CHALLENGE_SECRET`.
 
 ## Scripts
 

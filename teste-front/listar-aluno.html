@@ -605,6 +605,13 @@
     let paginaAtual = 1;
     const itensPorPagina = 5;
     let alunoEmEdicao = null;
+    const apiBaseUrl = window.location.port && !['3000', '8080'].includes(window.location.port)
+      ? `${window.location.protocol}//${window.location.hostname}:3000`
+      : '';
+
+    function buildApiUrl(path) {
+      return `${apiBaseUrl}${path}`;
+    }
 
     function getTokenOrRedirect() {
       const token = localStorage.getItem('token');
@@ -639,7 +646,7 @@
       if (!token) return;
 
       try {
-        const response = await fetch('http://localhost:3000/api/alunos', {
+        const response = await fetch(buildApiUrl('/api/alunos'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -698,13 +705,13 @@
         const dataNasc = formatarData(aluno.dataNascimento);
         const dataMatricula = formatarData(aluno.dataMatricula);
         const fotoHtml = aluno.fotoPath
-          ? `<img class="aluno-avatar" src="http://localhost:3000${aluno.fotoPath}" alt="Foto de ${aluno.nome}">`
+          ? `<img class="aluno-avatar" src="${buildApiUrl(aluno.fotoPath)}" alt="Foto de ${aluno.nome}">`
           : `<div class="aluno-avatar placeholder">👤</div>`;
 
         const temDocs = Array.isArray(aluno.documentos) && aluno.documentos.length > 0;
         const docsHtml = temDocs
           ? `<ul>${aluno.documentos.map((docPath, idx) => {
-              const url = `http://localhost:3000${docPath}`;
+              const url = buildApiUrl(docPath);
               return `<li><a href="${url}" target="_blank" rel="noopener">Documento ${idx + 1}</a></li>`;
             }).join('')}</ul>`
           : '<p>Sem documentos enviados.</p>';
@@ -1063,7 +1070,7 @@
       };
 
       try {
-        const resp = await fetch(`http://localhost:3000/api/aluno/${alunoEmEdicao.id}`, {
+        const resp = await fetch(buildApiUrl(`/api/aluno/${alunoEmEdicao.id}`), {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -1107,7 +1114,7 @@
       if (!token) return;
 
       try {
-        const resp = await fetch(`http://localhost:3000/api/aluno/${id}`, {
+        const resp = await fetch(buildApiUrl(`/api/aluno/${id}`), {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

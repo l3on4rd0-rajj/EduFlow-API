@@ -20,6 +20,7 @@ import logger from './utils/logger.js'
 import { startContaNotificationScheduler } from './utils/contas-notifications.js'
 
 const app = express()
+app.set('trust proxy', 1)
 const PORT = process.env.PORT || 3000
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const SERVE_STATIC_FRONTEND = process.env.SERVE_STATIC_FRONTEND !== 'false'
@@ -33,7 +34,10 @@ if (IS_PRODUCTION) {
     throw new Error(`Variaveis obrigatorias ausentes em producao: ${missingEnv.join(', ')}`)
   }
 
-  if (process.env.SMTP_TLS_REJECT_UNAUTHORIZED === 'false') {
+  if (
+    process.env.SMTP_TLS_REJECT_UNAUTHORIZED === 'false' &&
+    process.env.ALLOW_INSECURE_SMTP_TLS !== 'true'
+  ) {
     throw new Error('SMTP_TLS_REJECT_UNAUTHORIZED=false nao e permitido em producao')
   }
 }

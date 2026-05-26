@@ -174,6 +174,13 @@
   <script>
     let passoAtual = 1;
     const totalPassos = 6;
+    const apiBaseUrl = window.location.port && !['3000', '8080'].includes(window.location.port)
+      ? `${window.location.protocol}//${window.location.hostname}:3000`
+      : '';
+
+    function buildApiUrl(path) {
+      return `${apiBaseUrl}${path}`;
+    }
 
     function mostrarPasso(n) {
       document.querySelectorAll('.form-step').forEach((el, i) => {
@@ -305,7 +312,7 @@
     function buildFileUrl(p) {
       if (!p) return null;
       if (/^https?:\/\//i.test(p)) return p;
-      return `http://localhost:3000${p.startsWith('/') ? p : '/' + p}`;
+      return buildApiUrl(p.startsWith('/') ? p : '/' + p);
     }
 
     // ====== SUBMIT DO CADASTRO ======
@@ -372,7 +379,7 @@
       documentosFiles.forEach(f => formData.append('documentos', f));
 
       try {
-        const res = await fetch('http://localhost:3000/api/aluno', {
+        const res = await fetch(buildApiUrl('/api/aluno'), {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }, // não setar Content-Type manualmente
           body: formData
@@ -398,7 +405,7 @@
     async function carregarAlunos() {
       const token = localStorage.getItem('token');
       try {
-        const res = await fetch('http://localhost:3000/api/alunos', {
+        const res = await fetch(buildApiUrl('/api/alunos'), {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (!res.ok) {

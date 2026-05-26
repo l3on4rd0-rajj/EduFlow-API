@@ -11,8 +11,31 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=mongodb://mongo:27017/willdb
+      - JWT_SECRET=${JWT_SECRET:-change_this_jwt_secret_for_local_docker}
+      - RESET_PASSWORD_SECRET=${RESET_PASSWORD_SECRET:-change_this_reset_secret_for_local_docker}
+      - MFA_CHALLENGE_SECRET=${MFA_CHALLENGE_SECRET:-change_this_mfa_secret_for_local_docker}
+      - APP_URL=http://localhost:8080
+      - CORS_ALLOWED_ORIGINS=http://localhost:8080
+      - SERVE_STATIC_FRONTEND=false
+      - EXPOSE_API_DOCS=true
+      - SMTP_TLS_REJECT_UNAUTHORIZED=false
+      - ALLOW_INSECURE_SMTP_TLS=true
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./teste-front:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
     restart: unless-stopped
 
   mongo:
@@ -36,11 +59,15 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
-    command: |
-      until mongosh --host mongo --eval "rs.initiate({_id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }]})" 2>/dev/null; do
-        echo 'Waiting for mongo to be ready...' ; sleep 2
-      done
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        until mongosh --host mongo --eval
+        "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }]}).ok }"
+        >/dev/null 2>&1; do
+        echo 'Waiting for mongo replica set to be ready...' ; sleep 2;
+        done
     restart: "no"
 
 volumes:
