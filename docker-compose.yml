@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: dockerfile
-    image: api-node-app:latest
+    image: api-node-app:${APP_IMAGE_TAG:-1.0.1}
     env_file:
       - .env
     ports:
@@ -25,6 +25,11 @@ services:
         condition: service_healthy
       mongo-init:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/healthz').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   nginx:
@@ -35,7 +40,8 @@ services:
       - ./teste-front:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     restart: unless-stopped
 
   mongo:

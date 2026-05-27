@@ -64,9 +64,33 @@ const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
   .map((origin) => origin.trim())
   .filter(Boolean)
 
+const isPrivateDevelopmentHost = (hostname) =>
+  hostname === 'localhost' ||
+  hostname === '127.0.0.1' ||
+  hostname === '::1' ||
+  /^10\./.test(hostname) ||
+  /^192\.168\./.test(hostname) ||
+  /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+
+const isLocalDevelopmentOrigin = (origin) => {
+  if (IS_PRODUCTION) return false
+
+  try {
+    const { hostname, protocol } = new URL(origin)
+    return ['http:', 'https:'].includes(protocol) && isPrivateDevelopmentHost(hostname)
+  } catch (_) {
+    return false
+  }
+}
+
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    if (
+      !origin ||
+      (!IS_PRODUCTION && allowedOrigins.length === 0) ||
+      allowedOrigins.includes(origin) ||
+      isLocalDevelopmentOrigin(origin)
+    ) {
       return callback(null, true)
     }
 
@@ -81,6 +105,10 @@ app.disable('x-powered-by')
 
 // CORS liberado pra testes. Em produção, restrinja o origin.
 app.use(cors(corsOptions))
+
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok' })
+})
 
 // Rate limit global
 const limiter = rateLimit({

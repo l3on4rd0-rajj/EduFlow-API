@@ -11,6 +11,31 @@
   const trimTrailingSlash = (value) => value.replace(/\/+$/, '')
   const DEFAULT_API_PORT = '3000'
   const NGINX_FRONTEND_PORT = '8080'
+  const isPrivateHost = (hostname) =>
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname === '::1' ||
+    /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+
+  const normalizeApiBaseUrl = (value) => {
+    const trimmed = trimTrailingSlash(value)
+
+    try {
+      const url = new URL(trimmed)
+      if (
+        isPrivateHost(url.hostname) &&
+        url.port &&
+        ![DEFAULT_API_PORT, NGINX_FRONTEND_PORT].includes(url.port)
+      ) {
+        return `${url.protocol}//localhost:${DEFAULT_API_PORT}`
+      }
+    } catch (_) {}
+
+    return trimmed
+  }
 
   const getConfiguredApiBaseUrl = () => {
     const fromMeta = getMetaContent('api-base-url')
@@ -19,13 +44,18 @@
     const configured = fromMeta || fromWindow || fromStorage
 
     if (configured) {
-      return trimTrailingSlash(configured)
+      return normalizeApiBaseUrl(configured)
     }
 
     const { protocol, hostname, port } = window.location
 
+    if (protocol === 'file:') {
+      return `http://localhost:${DEFAULT_API_PORT}`
+    }
+
     if (port && ![DEFAULT_API_PORT, NGINX_FRONTEND_PORT].includes(port)) {
-      return `${protocol}//${hostname}:${DEFAULT_API_PORT}`
+      const apiHost = isPrivateHost(hostname) ? 'localhost' : hostname || 'localhost'
+      return `${protocol}//${apiHost}:${DEFAULT_API_PORT}`
     }
 
     return ''
