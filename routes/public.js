@@ -452,7 +452,7 @@ const sendMfaCodeEmail = async (user, code) => {
   const safeName = he.encode(user.name || '')
   const safeCode = he.encode(code)
 
-  await mailer.sendMail({
+  return mailer.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: user.email,
     subject: 'Seu codigo MFA - RAJJ',
@@ -757,7 +757,14 @@ router.post('/login', checkLoginAttempts, async (req, res) => {
       const codeHash = await bcrypt.hash(code, salt)
 
       try {
-        await sendMfaCodeEmail(user, code)
+        const mailInfo = await sendMfaCodeEmail(user, code)
+        logger.info('Codigo MFA aceito pelo SMTP', {
+          userId: user.id,
+          accepted: mailInfo?.accepted,
+          rejected: mailInfo?.rejected,
+          response: mailInfo?.response,
+          hasMessageId: Boolean(mailInfo?.messageId),
+        })
       } catch (mailError) {
         logger.error('Falha ao enviar codigo MFA', mailError, {
           userId: user.id,
