@@ -33,12 +33,12 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:1.27-alpine
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    image: api-node-nginx:${APP_IMAGE_TAG:-1.0.1}
     ports:
       - "8080:80"
-    volumes:
-      - ./teste-front:/usr/share/nginx/html:ro
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       app:
         condition: service_healthy
